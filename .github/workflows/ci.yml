@@ -17,7 +17,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Setup Java s Maven cache
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
@@ -30,15 +29,7 @@ jobs:
         run: mvn clean verify
         working-directory: backend
 
-      # Volitelné: Pokud chceš vidět výsledky testů přímo v PR
-      - name: Surface Test Results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results
-          path: backend/target/surefire-reports/
-
-      # Nahrání výsledků unit testů
+      # Nahrání výsledků unit testů (Ponechán jen jeden krok pro testy)
       - name: Upload Test Results
         if: always()
         uses: actions/upload-artifact@v4
@@ -46,6 +37,7 @@ jobs:
           name: test-results-${{ github.run_attempt }}
           path: backend/target/surefire-reports/
           overwrite: true
+
       # Nahrání JaCoCo reportu (pokrytí kódu)
       - name: Upload Coverage Report
         if: always()
