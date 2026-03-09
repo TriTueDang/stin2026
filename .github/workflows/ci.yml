@@ -26,8 +26,11 @@ jobs:
 
       # Spuštění testů a buildu
       - name: Build and Test with Maven
-        run: mvn clean verify
         working-directory: backend
+        env:
+          EXCHANGE_API_KEY: ${{ secrets.EXCHANGE_API_KEY }}
+          EXCHANGE_API_URL: ${{ secrets.EXCHANGE_API_URL }}
+        run: mvn clean verify
 
       # Nahrání výsledků unit testů (Ponechán jen jeden krok pro testy)
       - name: Upload Test Results
