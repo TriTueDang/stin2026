@@ -15,4 +15,10 @@ public class HelloController {
     public String hello() {
         return "Hello from Spring Boot!";
     }
+    public double divide(int a, int b) {
+        if (b == 0) {
+            throw new IllegalArgumentException("Divisor cannot be zero");
+        }
+        return (double) a / b;
+    }
 }
