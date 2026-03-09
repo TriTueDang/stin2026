@@ -37,3 +37,19 @@ jobs:
         with:
           name: test-results
           path: backend/target/surefire-reports/
+
+      # Nahrání výsledků unit testů
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: backend/target/surefire-reports/
+
+      # Nahrání JaCoCo reportu (pokrytí kódu)
+      - name: Upload Coverage Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: backend/target/site/jacoco/
