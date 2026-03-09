@@ -10,6 +10,7 @@ on:
 
 jobs:
   test-and-build:
+    if: startsWith(github.head_ref, 'feature/backend')
     runs-on: ubuntu-latest
 
     steps:

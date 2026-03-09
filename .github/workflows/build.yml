@@ -1,12 +1,17 @@
 name: Build Vue + Spring Boot
 
 on:
-  push:
+  pull_request:
     branches:
       - develop
+    paths:
+      - 'frontend/**'
+      - 'backend/**'
+      - '.github/workflows/**'
 
 jobs:
   build:
+    if: startsWith(github.head_ref, 'feature/frontend')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
