@@ -13,6 +13,11 @@ public class HelloController {
     // map to /api/hello so the frontend URL matches
     @GetMapping("/hello")
     public String hello() {
+        add(2, 3);
         return "Hello from Spring Boot!";
+    }
+
+    public int add(int a, int b) {
+        return a + b;
     }
 }
