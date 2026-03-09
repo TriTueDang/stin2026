@@ -1,11 +1,13 @@
 <script setup>
-import axios from "axios"
+// import axios from "axios"
+import apiClient from "@/services/api"
 import { ref, onMounted } from "vue"
 
 const message = ref("")
-
+console.log(apiClient.defaults.baseURL)
 onMounted(async () => {
-  const response = await axios.get("http://localhost:8080/api/hello")
+  const response = await apiClient.get("/api/hello")
+
   message.value = response.data
 })
 </script>
@@ -13,6 +15,6 @@ onMounted(async () => {
 <template>
   <div>
     {{ message }}
-    hello world
+    hello world?
   </div>
 </template>
