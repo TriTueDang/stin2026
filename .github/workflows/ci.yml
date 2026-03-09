@@ -1,0 +1,39 @@
+name: CI Backend Test & Build
+
+on:
+  pull_request:
+    branches:
+      - develop
+    paths:
+      - 'backend/**'
+      - '.github/workflows/ci.yml'
+
+jobs:
+  test-and-build:
+    if: startsWith(github.head_ref, 'feature/backend/')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Setup Java s Maven cache
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+
+      # Spuštění testů a buildu
+      - name: Build and Test with Maven
+        run: mvn clean verify
+        working-directory: backend
+
+      # Volitelné: Pokud chceš vidět výsledky testů přímo v PR
+      - name: Surface Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: backend/target/surefire-reports/
