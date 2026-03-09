@@ -45,7 +45,7 @@ jobs:
         with:
           name: test-results-${{ github.run_attempt }}
           path: backend/target/surefire-reports/
-
+          overwrite: true
       # Nahrání JaCoCo reportu (pokrytí kódu)
       - name: Upload Coverage Report
         if: always()
@@ -53,3 +53,4 @@ jobs:
         with:
           name: coverage-report-${{ github.run_attempt }}
           path: backend/target/site/jacoco/
+          overwrite: true
