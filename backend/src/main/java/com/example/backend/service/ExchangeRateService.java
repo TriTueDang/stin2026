@@ -21,14 +21,14 @@ public class ExchangeRateService {
     public ExchangeRateResponse getRates(String base) {
 
         ExchangeRateResponse response = client.getRates(base);
-        storage.saveRates(response, "data/rates4.json");
+//        storage.saveRates(response, "data/rates4.json");
         return response;
 //        return storage.loadRates("data/rates-live.json");
     }
     public TimeframeResponse getTimeframeExchangeRates(String base, String startDate, String endDate) {
         TimeframeResponse response = client.getTimeframeExchangeRates(base, startDate, endDate);
 
-        storage.saveRates(response, "data/timeframe_rates.json");
+//        storage.saveRates(response, "data/timeframe_rates.json");
         return response;
 //        return storage.loadTimeframe("data/timeframe_rates.json");
     }
