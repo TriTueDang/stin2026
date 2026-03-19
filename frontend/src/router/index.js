@@ -1,11 +1,13 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
 import HelloWorld from '@/components/HelloWorld.vue'
+import ExchangeRate from '@/components/ExchangeRate.vue'
 
 const routes = [
   {
     path: '/',
-    component: HelloWorld
+    component: ExchangeRate
+    // component: HelloWorld
   }
 ]
 
