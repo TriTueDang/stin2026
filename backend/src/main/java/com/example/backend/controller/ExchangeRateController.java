@@ -3,13 +3,11 @@ package com.example.backend.controller;
 import com.example.backend.dto.ExchangeRateResponse;
 import com.example.backend.dto.TimeframeResponse;
 import com.example.backend.service.ExchangeRateService;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/rates")
+@CrossOrigin(origins = "http://localhost:5173")
 public class ExchangeRateController {
 
     private final ExchangeRateService service;
