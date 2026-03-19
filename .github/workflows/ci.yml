@@ -1,0 +1,51 @@
+name: CI Backend Test & Build
+
+on:
+  pull_request:
+    branches:
+      - develop
+    paths:
+      - 'backend/**'
+      - '.github/workflows/ci.yml'
+
+jobs:
+  test-and-build:
+    if: startsWith(github.head_ref, 'feature/backend')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+
+      # Spuštění testů a buildu
+      - name: Build and Test with Maven
+        working-directory: backend
+        env:
+          EXCHANGE_API_KEY: ${{ secrets.EXCHANGE_API_KEY }}
+          EXCHANGE_API_URL: ${{ secrets.EXCHANGE_API_URL }}
+        run: mvn clean verify
+
+      # Nahrání výsledků unit testů (Ponechán jen jeden krok pro testy)
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ github.run_attempt }}
+          path: backend/target/surefire-reports/
+          overwrite: true
+
+      # Nahrání JaCoCo reportu (pokrytí kódu)
+      - name: Upload Coverage Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report-${{ github.run_attempt }}
+          path: backend/target/site/jacoco/
+          overwrite: true
