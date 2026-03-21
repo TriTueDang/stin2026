@@ -54,4 +54,26 @@ public class FileStorageService {
             throw new RuntimeException("Failed to load timeframe from JSON", e);
         }
     }
+
+    public void saveSettings(com.example.backend.dto.UserSettings settings, String filepath) {
+        try {
+            File file = new File(filepath);
+            file.getParentFile().mkdirs();
+            objectMapper.writeValue(file, settings);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to save settings", e);
+        }
+    }
+
+    public com.example.backend.dto.UserSettings loadSettings(String filepath) {
+        try {
+            File file = new File(filepath);
+            if (!file.exists()) {
+                return new com.example.backend.dto.UserSettings();
+            }
+            return objectMapper.readValue(file, com.example.backend.dto.UserSettings.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to load settings", e);
+        }
+    }
 }
