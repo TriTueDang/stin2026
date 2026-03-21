@@ -3,12 +3,14 @@ package com.example.backend.service;
 
 import com.example.backend.client.ExchangeRateClient;
 import com.example.backend.dto.*;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
+@Slf4j
 public class ExchangeRateService {
 
     private final ExchangeRateClient client;
@@ -46,7 +48,16 @@ public class ExchangeRateService {
     }
 
     public UserSettings getSettings() {
-        return storage.loadSettings(storagePath + "user_settings.json");
+        try{
+            return storage.loadSettings(storagePath + "user_settings.json");
+        } catch (Exception e) {
+            // If loading fails, return default settings
+            UserSettings defaultSettings = new UserSettings();
+            defaultSettings.setWatchedCurrencies(List.of("USD", "EUR", "GBP"));
+            log.warn("Failed to get user settings, returning default settings: {}", e.getMessage());
+            return defaultSettings;
+        }
+//        return storage.loadSettings(storagePath + "user_settings.json");
     }
 
     public void saveSettings(UserSettings settings) {
