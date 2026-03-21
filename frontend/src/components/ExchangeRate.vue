@@ -1,5 +1,5 @@
 <template>
-  <div class="dashboard-container" :class="theme">
+  <div class="dashboard-container">
     <div class="header-bar">
       <h1>{{ t[lang].title }}</h1>
       <div class="header-actions">
@@ -55,17 +55,6 @@
               <option value="cs">CZ</option>
               <option value="en">EN</option>
             </select>
-          </div>
-
-          <div class="form-group">
-            <label><strong>{{ t[lang].appearance }}:</strong></label>
-            <div class="toggle-wrapper">
-              <label class="theme-switch">
-                <input type="checkbox" v-model="isDarkTheme">
-                <span class="slider round"></span>
-              </label>
-              <span class="theme-label">{{ isDarkTheme ? t[lang].dark : t[lang].light }}</span>
-            </div>
           </div>
         </div>
         <div class="modal-footer">
@@ -183,7 +172,7 @@
           <svg class="svg-chart" viewBox="0 0 800 200" preserveAspectRatio="none">
             <!-- Grid Lines -->
             <line v-for="i in 3" :key="'grid'+i" x1="45" :y1="getChartGridY(i)" x2="800" :y2="getChartGridY(i)" class="grid-line" />
-
+            
             <!-- Y Axis Labels -->
             <text v-for="i in 3" :key="'ytxt'+i" x="40" :y="getChartGridY(i) + 4" class="axis-text y-axis">
               {{ getChartGridVal(chartLine.min, chartLine.max, i).toFixed(4) }}
@@ -191,13 +180,13 @@
 
             <!-- Line -->
             <path :d="chartLine.path" class="chart-line" :stroke="colors[index % colors.length]" fill="none" stroke-width="3" stroke-linejoin="round" />
-
+            
             <!-- Points -->
             <circle v-for="(pt, pi) in chartLine.points" :key="pi" :cx="pt.x" :cy="pt.y" r="4" :fill="colors[index % colors.length]" class="chart-point">
               <title>{{ pt.date }}: {{ pt.val.toFixed(4) }}</title>
             </circle>
 
-            <!-- X Axis Labels (first, middle, last approx) -->
+            <!-- X Axis Labels -->
              <g v-if="chartLine.points.length > 0">
                <text :x="chartLine.points[0].x" y="195" class="axis-text x-axis start">{{ chartPoints[0].date }}</text>
                <text v-if="chartLine.points.length > 2" :x="chartLine.points[Math.floor(chartLine.points.length/2)].x" y="195" class="axis-text x-axis middle">{{ chartPoints[Math.floor(chartPoints.length/2)].date }}</text>
@@ -211,7 +200,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import apiClient from '@/services/api';
 
@@ -230,10 +219,7 @@ const loading = ref(false);
 const error = ref(null);
 const showSettings = ref(false);
 
-const isDarkTheme = ref(false);
-const theme = computed(() => isDarkTheme.value ? 'dark' : 'light');
-
-// Configuration
+// Configuration Defaults
 const availableCurrencies = ['USD', 'EUR', 'CZK', 'GBP', 'CHF', 'JPY', 'PLN', 'HUF', 'AUD', 'CAD', 'CNY', 'SEK', 'NOK', 'DKK'];
 const watchedCurrencies = ref(['EUR', 'CZK', 'USD', 'GBP']);
 const currentBase = ref('EUR');
@@ -256,9 +242,6 @@ const t = {
     defaultBase: 'Výchozí základní měna',
     preferredCurrencies: 'Preferované měny',
     language: 'Jazyk',
-    appearance: 'Vzhled',
-    dark: 'Tmavý',
-    light: 'Světlý',
     saveSettings: 'Uložit nastavení a aktualizovat',
     errorTitle: 'Chyba',
     fetchError: 'Nepodařilo se načíst data z ExchangeRate API',
@@ -284,9 +267,6 @@ const t = {
     defaultBase: 'Default base currency',
     preferredCurrencies: 'Preferred currencies',
     language: 'Language',
-    appearance: 'Appearance',
-    dark: 'Dark',
-    light: 'Light',
     saveSettings: 'Save settings & refresh',
     errorTitle: 'Error',
     fetchError: 'Unable to fetch data from ExchangeRate API',
@@ -316,8 +296,19 @@ const formatDate = (ts) => {
   return new Date(ts * 1000).toLocaleString(lang.value === 'cs' ? 'cs-CZ' : 'en-US');
 };
 
-const saveSettings = () => {
+const saveSettings = async () => {
   showSettings.value = false;
+  // Push config to backend file storage
+  try {
+    await apiClient.post('/api/rates/settings', {
+      baseCurrency: currentBase.value,
+      watchedCurrencies: watchedCurrencies.value,
+      lang: lang.value
+    });
+  } catch(e) {
+    console.error("Failed to persist settings.");
+  }
+
   fetchCurrentRates();
   fetchTimeframe();
 };
@@ -356,7 +347,6 @@ const fetchTimeframe = async () => {
     historyStatsData.value = statsRes.data;
   } catch (err) {
     console.error(err);
-    // Silent fail for history individually if needed, or handle globally
   } finally {
     loading.value = false;
   }
@@ -374,8 +364,7 @@ const chartPoints = computed(() => {
 });
 
 const getChartGridY = (i) => {
-  // 3 grid lines in a 200px height box: top(20), middle(90), bottom(160)
-  return 20 + ((i - 1) * 70);
+  return 20 + ((i - 1) * 70); 
 };
 
 const getChartGridVal = (min, max, i) => {
@@ -386,14 +375,14 @@ const getChartGridVal = (min, max, i) => {
 const chartLines = computed(() => {
   const pts = chartPoints.value;
   if(pts.length === 0) return [];
-
-  const width = 750; // 800 - 50 margin
-  const height = 140; // 160 - 20
+  
+  const width = 750;
+  const height = 140;
 
   return filteredQuotes.value.map(sym => {
     let min = Infinity;
     let max = -Infinity;
-
+    
     // Calculate local min max
     pts.forEach(p => {
       const val = p.rates[currentBase.value + sym];
@@ -407,7 +396,7 @@ const chartLines = computed(() => {
     const padding = (max - min) * 0.1 || max * 0.1;
     min = Math.max(0, min - padding);
     max = max + padding;
-
+    
     const range = max - min || 1;
     const points = [];
 
@@ -419,7 +408,7 @@ const chartLines = computed(() => {
         points.push({ x, y, val, date: p.date });
       }
     });
-
+    
     let path = "";
     points.forEach((pt, i) => {
       path += (i === 0 ? `M ${pt.x} ${pt.y}` : ` L ${pt.x} ${pt.y}`);
@@ -429,37 +418,27 @@ const chartLines = computed(() => {
   }).filter(l => l.points.length > 0);
 });
 
-// Initial load
-// fetchCurrentRates();
+// Load Settings from File Initialy
+onMounted(async () => {
+  try {
+    const res = await apiClient.get('/api/rates/settings');
+    if (res.data) {
+      if (res.data.baseCurrency) currentBase.value = res.data.baseCurrency;
+      if (res.data.watchedCurrencies && res.data.watchedCurrencies.length > 0) watchedCurrencies.value = res.data.watchedCurrencies;
+      if (res.data.lang) lang.value = res.data.lang;
+    }
+  } catch(e) {
+    console.error("No custom settings loaded, using defaults.");
+  }
+  
+  // Followed by fetching standard data
+  fetchCurrentRates();
+});
 </script>
 
 <style scoped>
-/* CSS Variables for Themes */
+/* CSS Variables for Permanently Dark Theme */
 .dashboard-container {
-  /* Light Theme Colors */
-  --bg-body: #f9fafb;
-  --bg-card: #ffffff;
-  --bg-input: #f9fafb;
-  --bg-hover: #f3f4f6;
-  --text-main: #1f2937;
-  --text-muted: #6b7280;
-  --border-color: #e5e7eb;
-  --border-strong: #d1d5db;
-  --primary: #2563eb;
-  --primary-hover: #1d4ed8;
-  --pill-bg: white;
-  --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-
-  min-height: 100vh;
-  background-color: var(--bg-body);
-  color: var(--text-main);
-  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
-  padding: 30px 20px;
-  transition: background-color 0.3s, color 0.3s;
-}
-
-.dashboard-container.dark {
-  /* Dark Theme Colors */
   --bg-body: #111827;
   --bg-card: #1f2937;
   --bg-input: #374151;
@@ -472,6 +451,12 @@ const chartLines = computed(() => {
   --primary-hover: #2563eb;
   --pill-bg: #374151;
   --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+
+  min-height: 100vh;
+  background-color: var(--bg-body);
+  color: var(--text-main);
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  padding: 30px 20px;
 }
 
 /* Base Styles */
@@ -603,7 +588,7 @@ button {
   font-size: 1rem;
   color: var(--text-main);
   outline: none;
-  color-scheme: inherit;
+  color-scheme: dark;
 }
 .modern-select:focus, .modern-input:focus {
   border-color: var(--primary);
@@ -627,40 +612,6 @@ button {
 }
 .modern-check input { width: 16px; height: 16px; accent-color: var(--primary); }
 .check-text { font-size: 0.95rem; font-weight: 500; color: var(--text-main); }
-
-/* Theme Toggle */
-.toggle-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.theme-switch {
-  position: relative;
-  display: inline-block;
-  width: 44px;
-  height: 24px;
-}
-.theme-switch input { opacity: 0; width: 0; height: 0; }
-.slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background-color: #ccc;
-  transition: .4s;
-}
-.slider.round { border-radius: 24px; }
-.slider.round:before { border-radius: 50%; }
-.slider:before {
-  position: absolute;
-  content: "";
-  height: 18px; width: 18px;
-  left: 3px; bottom: 3px;
-  background-color: white;
-  transition: .4s;
-}
-input:checked + .slider { background-color: var(--primary); }
-input:checked + .slider:before { transform: translateX(20px); }
-.theme-label { font-weight: 500; color: var(--text-main); }
 
 /* Modals */
 .modal-overlay {
