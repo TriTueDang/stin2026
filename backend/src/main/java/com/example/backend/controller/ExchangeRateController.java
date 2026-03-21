@@ -1,12 +1,13 @@
 package com.example.backend.controller;
 
-import com.example.backend.dto.ExchangeRateResponse;
+import com.example.backend.dto.CurrentRatesStatistics;
+import com.example.backend.dto.HistoricalRatesStatistics;
 import com.example.backend.dto.TimeframeResponse;
+import com.example.backend.dto.UserSettings;
 import com.example.backend.service.ExchangeRateService;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/rates")
@@ -18,12 +19,30 @@ public class ExchangeRateController {
         this.service = service;
     }
 
-    @GetMapping("/{base}")
-    public ExchangeRateResponse getRates(@PathVariable String base) {
-        return service.getRates(base);
+    @GetMapping("/current/{base}")
+    public CurrentRatesStatistics getCurrentRates(@PathVariable("base") String base, @RequestParam("watched") List<String> watched) {
+        // return rates and max, min for watched currencies
+        return service.getCurrentRates(base, watched);
     }
-    @GetMapping("/timeframe/{base}/{startDate}/{endDate}")
-    public TimeframeResponse getTimeframeExchangeRates(@PathVariable String base,@PathVariable String startDate,@PathVariable String endDate) {
-        return service.getTimeframeExchangeRates(base, startDate, endDate);
+
+    @GetMapping("/history/{base}/{startDate}/{endDate}")
+    public TimeframeResponse getHistoricalRates(@PathVariable("base") String base,@PathVariable("startDate") String startDate,@PathVariable("endDate") String endDate) {
+        return service.getHistoricalRates(base, startDate, endDate);
+    }
+
+
+    @GetMapping("/history/statistics/{base}/{startDate}/{endDate}")
+    public HistoricalRatesStatistics getHistoricalStatistics(@PathVariable("base") String base, @PathVariable("startDate") String startDate, @PathVariable("endDate") String endDate, @RequestParam("watched") List<String> watched) {
+        return service.getHistoricalStatistics(base, startDate, endDate, watched);
+    }
+
+    @GetMapping("/settings")
+    public UserSettings getSettings() {
+        return service.getSettings();
+    }
+
+    @PostMapping("/settings")
+    public void saveSettings(@RequestBody UserSettings settings) {
+        service.saveSettings(settings);
     }
 }

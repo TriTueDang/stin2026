@@ -1,121 +1,292 @@
 <template>
-  <div class="container">
-    <div class="lang-switch">
-      <button @click="lang = 'cs'" :class="{ active: lang === 'cs' }">CZ</button>
-      <button @click="lang = 'en'" :class="{ active: lang === 'en' }">EN</button>
+  <div class="dashboard-container">
+    <div class="header-bar">
+      <h1>{{ t[lang].title }}</h1>
+      <div class="header-actions">
+        <span class="user-greeting">👤 {{ loggedInUser }}</span>
+        <button class="icon-btn settings-btn" @click="showSettings = true">
+          ⚙️ {{ t[lang].settings }}
+        </button>
+        <button class="icon-btn logout-btn" @click="handleLogout">
+          🚪 {{ t[lang].logout }}
+        </button>
+      </div>
     </div>
 
-    <h1>{{ t[lang].title }}</h1>
-
-    <section class="card config-section">
-      <div class="form-group">
-        <label><strong>{{ t[lang].baseCurrency }}:</strong></label>
-        <select v-model="currentBase" @change="fetchCurrentRates">
-          <option v-for="c in availableCurrencies" :key="c" :value="c">{{ c }}</option>
-        </select>
+    <!-- Main action bar -->
+    <section class="card action-bar">
+      <div class="action-info">
+        <span class="currency-label">{{ t[lang].baseCurrency }}:</span>
+        <span class="badge">{{ currentBase }}</span>
       </div>
-
-      <div class="watchlist">
-        <p><strong>{{ t[lang].watchlist }}:</strong></p>
-        <div class="checkbox-grid">
-          <label v-for="c in availableCurrencies" :key="c" class="check-item">
-            <input type="checkbox" :value="c" v-model="watchedCurrencies" /> {{ c }}
-          </label>
-        </div>
-      </div>
-
       <button class="main-btn" @click="fetchCurrentRates" :disabled="loading">
         {{ loading ? '...' : t[lang].refresh }}
       </button>
     </section>
 
-    <section v-if="currentData" class="card">
+    <!-- Settings Modal -->
+    <div v-if="showSettings" class="modal-overlay" @click.self="saveSettings">
+      <div class="modal modern-modal">
+        <div class="modal-header">
+          <h2>{{ t[lang].settings }}</h2>
+          <button class="close-btn" @click="saveSettings">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label><strong>{{ t[lang].defaultBase }}:</strong></label>
+            <select v-model="currentBase" class="modern-select">
+              <option v-for="c in availableCurrencies" :key="c" :value="c">{{ c }}</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label><strong>{{ t[lang].preferredCurrencies }}:</strong></label>
+            <div class="checkbox-grid">
+              <label v-for="c in availableCurrencies" :key="c" class="check-item modern-check">
+                <input type="checkbox" :value="c" v-model="watchedCurrencies" />
+                <span class="check-text">{{ c }}</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label><strong>{{ t[lang].language }}:</strong></label>
+            <select v-model="lang" class="modern-select">
+              <option value="cs">CZ</option>
+              <option value="en">EN</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="main-btn w-full" @click="saveSettings">
+            {{ t[lang].saveSettings }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error Modal -->
+    <div v-if="error" class="modal-overlay">
+      <div class="modal error-modal">
+        <div class="modal-header error-header">
+          <h2>⚠️ {{ t[lang].errorTitle }}</h2>
+        </div>
+        <div class="modal-body text-center">
+          <p class="error-text">{{ t[lang].fetchError }}</p>
+          <p class="error-subtext">{{ t[lang].tryAgain }}</p>
+
+          <div class="last-data-box" v-if="lastValidDate">
+            ({{ t[lang].usingLastData }}: {{ formatDate(lastValidDate) }})
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="main-btn retry-btn w-full" @click="fetchCurrentRates">
+            {{ t[lang].retry }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Current Rates -->
+    <section v-if="currentData && currentData.exchangeRates" class="card">
       <div class="table-header">
         <h2>{{ t[lang].currentTable }}</h2>
-        <span class="date-info">{{ formatDate(currentData.timestamp) }}</span>
+        <span class="date-info">{{ formatDate(currentData.exchangeRates.timestamp) }}</span>
       </div>
 
-      <table class="rate-table">
-        <thead>
-          <tr>
-            <th>{{ t[lang].currency }}</th>
-            <th>{{ t[lang].rate }} ({{ currentBase }})</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="symbol in filteredQuotes" :key="symbol">
-            <td><strong>{{ symbol }}</strong></td>
-            <td>{{ currentData.quotes[currentBase + symbol]?.toFixed(4) || 'N/A' }}</td>
-          </tr>
-        </tbody>
-      </table>
+      <!-- Statistics -->
+      <div class="stats-row" v-if="currentData.strongestCurrency || currentData.weakestCurrency">
+        <div class="stat-badge success" v-if="currentData.strongestCurrency">
+          📈 {{ t[lang].strongest }}: <strong>{{ currentData.strongestCurrency }}</strong>
+        </div>
+        <div class="stat-badge danger" v-if="currentData.weakestCurrency">
+          📉 {{ t[lang].weakest }}: <strong>{{ currentData.weakestCurrency }}</strong>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="rate-table modern-table">
+          <thead>
+            <tr>
+              <th>{{ t[lang].currency }}</th>
+              <th>{{ t[lang].rate }} ({{ currentBase }})</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="symbol in filteredQuotes" :key="symbol">
+              <td>
+                <div class="currency-cell">
+                  <strong>{{ symbol }}</strong>
+                </div>
+              </td>
+              <td>
+                <span class="rate-value">{{ currentData.exchangeRates.quotes[currentBase + symbol]?.toFixed(4) || 'N/A' }}</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </section>
 
-    <section class="card">
+    <!-- History Controls -->
+    <section class="card history-card">
       <h2>{{ t[lang].history }}</h2>
-      <div class="form-row">
-        <input type="date" v-model="startDate" />
-        <input type="date" v-model="endDate" />
-        <button @click="fetchTimeframe" :disabled="loading">{{ t[lang].loadHistory }}</button>
+      <div class="history-controls">
+        <div class="date-group">
+          <input type="date" v-model="startDate" class="modern-input" />
+          <span class="date-separator">-</span>
+          <input type="date" v-model="endDate" class="modern-input" />
+        </div>
+        <button class="secondary-btn" @click="fetchTimeframe" :disabled="loading">{{ t[lang].loadHistory }}</button>
       </div>
 
-      <div v-if="historyData" class="history-results">
-        <div v-for="(rates, date) in historyData.quotes" :key="date" class="history-day">
-          <span class="day-date">{{ date }}</span>:
-          <span class="day-val">CZK: {{ rates[currentBase + 'CZK']?.toFixed(2) || 'N/A' }}</span>
+      <!-- Average Table from History -->
+      <div v-if="historyStatsData && historyStatsData.average" class="average-table-section mt-4">
+        <h3>{{ t[lang].averageSelected }}</h3>
+        <div class="table-responsive">
+          <table class="rate-table modern-table">
+            <thead>
+              <tr>
+                <th>{{ t[lang].currency }}</th>
+                <th>{{ t[lang].averageRate }} ({{ currentBase }})</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="symbol in filteredQuotes" :key="symbol">
+                <td><strong>{{ symbol }}</strong></td>
+                <td>
+                  <span class="rate-value">
+                    {{ historyStatsData.average[symbol] ? historyStatsData.average[symbol].toFixed(4) : 'N/A' }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Historical Charts per Currency -->
+      <div v-if="historyData && historyData.quotes && chartPoints.length > 0" class="history-charts-wrapper mt-4">
+        <div v-for="(chartLine, index) in chartLines" :key="chartLine.currency" class="individual-chart-card mb-4">
+          <h4 class="chart-title">{{ chartLine.currency }} vs {{ currentBase }}</h4>
+          <svg class="svg-chart" viewBox="0 0 800 200" preserveAspectRatio="none">
+            <!-- Grid Lines -->
+            <line v-for="i in 3" :key="'grid'+i" x1="45" :y1="getChartGridY(i)" x2="800" :y2="getChartGridY(i)" class="grid-line" />
+            
+            <!-- Y Axis Labels -->
+            <text v-for="i in 3" :key="'ytxt'+i" x="40" :y="getChartGridY(i) + 4" class="axis-text y-axis">
+              {{ getChartGridVal(chartLine.min, chartLine.max, i).toFixed(4) }}
+            </text>
+
+            <!-- Line -->
+            <path :d="chartLine.path" class="chart-line" :stroke="colors[index % colors.length]" fill="none" stroke-width="3" stroke-linejoin="round" />
+            
+            <!-- Points -->
+            <circle v-for="(pt, pi) in chartLine.points" :key="pi" :cx="pt.x" :cy="pt.y" r="4" :fill="colors[index % colors.length]" class="chart-point">
+              <title>{{ pt.date }}: {{ pt.val.toFixed(4) }}</title>
+            </circle>
+
+            <!-- X Axis Labels -->
+             <g v-if="chartLine.points.length > 0">
+               <text :x="chartLine.points[0].x" y="195" class="axis-text x-axis start">{{ chartPoints[0].date }}</text>
+               <text v-if="chartLine.points.length > 2" :x="chartLine.points[Math.floor(chartLine.points.length/2)].x" y="195" class="axis-text x-axis middle">{{ chartPoints[Math.floor(chartPoints.length/2)].date }}</text>
+               <text :x="chartLine.points[chartLine.points.length - 1].x" y="195" class="axis-text x-axis end">{{ chartPoints[chartPoints.length - 1].date }}</text>
+             </g>
+          </svg>
         </div>
       </div>
     </section>
-
-    <div v-if="error" class="error-msg">{{ error }}</div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import apiClient from '@/services/api';
+
+const router = useRouter();
+const loggedInUser = ref(localStorage.getItem('user') || 'Admin');
+
+const handleLogout = () => {
+  localStorage.removeItem('isAuthenticated');
+  localStorage.removeItem('user');
+  localStorage.removeItem('basicAuthToken');
+  router.push('/login');
+};
 
 const lang = ref('cs');
 const loading = ref(false);
 const error = ref(null);
+const showSettings = ref(false);
 
-// Konfigurace měn
+// Configuration Defaults
 const availableCurrencies = ['USD', 'EUR', 'CZK', 'GBP', 'CHF', 'JPY', 'PLN', 'HUF', 'AUD', 'CAD', 'CNY', 'SEK', 'NOK', 'DKK'];
-const watchedCurrencies = ref(['EUR', 'CZK', 'USD', 'GBP']); // Výchozí sledované
+const watchedCurrencies = ref(['EUR', 'CZK', 'USD', 'GBP']);
 const currentBase = ref('EUR');
 
 const currentData = ref(null);
 const historyData = ref(null);
-const startDate = ref('2026-03-01');
-const endDate = ref('2026-03-19');
+const historyStatsData = ref(null);
+const startDate = ref('2025-01-01');
+const endDate = ref('2025-01-10');
+const lastValidDate = ref(null);
 
-// Překlady
+const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
+
+// Translations
 const t = {
   cs: {
     title: 'Kurzovní lístek',
     baseCurrency: 'Základní měna',
-    watchlist: 'Sledované měny',
+    settings: 'Nastavení',
+    defaultBase: 'Výchozí základní měna',
+    preferredCurrencies: 'Preferované měny',
+    language: 'Jazyk',
+    saveSettings: 'Uložit nastavení a aktualizovat',
+    errorTitle: 'Chyba',
+    fetchError: 'Nepodařilo se načíst data z ExchangeRate API',
+    tryAgain: 'Prosím zkuste to znovu později',
+    usingLastData: 'Použita poslední dostupná data z',
+    retry: 'Zkusit znovu',
     refresh: 'Aktualizovat kurzy',
     currentTable: 'Aktuální kurzy',
     currency: 'Měna',
     rate: 'Kurz',
     history: 'Historie',
     loadHistory: 'Načíst historii',
+    strongest: 'Nejsilnější',
+    weakest: 'Nejslabší',
+    averageSelected: 'Průměr vybraných měn',
+    averageRate: 'Průměrný kurz',
+    logout: 'Odhlásit se'
   },
   en: {
-    title: 'Exchange Rate List',
+    title: 'Exchange Rates',
     baseCurrency: 'Base Currency',
-    watchlist: 'Watchlist',
+    settings: 'Settings',
+    defaultBase: 'Default base currency',
+    preferredCurrencies: 'Preferred currencies',
+    language: 'Language',
+    saveSettings: 'Save settings & refresh',
+    errorTitle: 'Error',
+    fetchError: 'Unable to fetch data from ExchangeRate API',
+    tryAgain: 'Please try again later',
+    usingLastData: 'Using last available data from',
+    retry: 'Retry',
     refresh: 'Refresh Rates',
     currentTable: 'Current Rates',
     currency: 'Currency',
     rate: 'Rate',
     history: 'History',
     loadHistory: 'Load History',
+    strongest: 'Strongest',
+    weakest: 'Weakest',
+    averageSelected: 'Average of selected currencies',
+    averageRate: 'Average Rate',
+    logout: 'Logout'
   }
 };
 
-// Filtrované kurzy pro zobrazení (jen ty, co uživatel zaškrtl a nejsou base)
 const filteredQuotes = computed(() => {
   return watchedCurrencies.value.filter(c => c !== currentBase.value);
 });
@@ -125,62 +296,460 @@ const formatDate = (ts) => {
   return new Date(ts * 1000).toLocaleString(lang.value === 'cs' ? 'cs-CZ' : 'en-US');
 };
 
+const saveSettings = async () => {
+  showSettings.value = false;
+  // Push config to backend file storage
+  try {
+    await apiClient.post('/api/rates/settings', {
+      baseCurrency: currentBase.value,
+      watchedCurrencies: watchedCurrencies.value,
+      lang: lang.value
+    });
+  } catch(e) {
+    console.error("Failed to persist settings.");
+  }
+
+  fetchCurrentRates();
+  fetchTimeframe();
+};
+
 const fetchCurrentRates = async () => {
   loading.value = true;
   error.value = null;
   try {
-    const response = await apiClient.get(`/api/rates/${currentBase.value}`);
+    const response = await apiClient.get(`/api/rates/current/${currentBase.value}`, {
+      params: { watched: watchedCurrencies.value.join(',') }
+    });
     currentData.value = response.data;
+    if (response.data && response.data.exchangeRates) {
+      lastValidDate.value = response.data.exchangeRates.timestamp;
+    }
   } catch (err) {
+    console.error(err);
     error.value = "API Error";
   } finally {
     loading.value = false;
   }
-  console.log(currentData.value);
-  console.log(filteredQuotes.value);
 };
 
 const fetchTimeframe = async () => {
   loading.value = true;
+  historyData.value = null;
+  historyStatsData.value = null;
   try {
-    const response = await apiClient.get(`/api/rates/timeframe/${currentBase.value}/${startDate.value}/${endDate.value}`);
-    historyData.value = response.data;
+    const [historyRes, statsRes] = await Promise.all([
+      apiClient.get(`/api/rates/history/${currentBase.value}/${startDate.value}/${endDate.value}`),
+      apiClient.get(`/api/rates/history/statistics/${currentBase.value}/${startDate.value}/${endDate.value}`, {
+        params: { watched: watchedCurrencies.value.join(',') }
+      })
+    ]);
+    historyData.value = historyRes.data;
+    historyStatsData.value = statsRes.data;
   } catch (err) {
-    error.value = "History API Error";
+    console.error(err);
   } finally {
     loading.value = false;
   }
 };
 
-// Načíst data při startu
-fetchCurrentRates();
+// -- CHART LOGIC -- //
+const chartPoints = computed(() => {
+  if (!historyData.value || !historyData.value.quotes) return [];
+  return Object.keys(historyData.value.quotes)
+    .sort()
+    .map(date => ({
+      date,
+      rates: historyData.value.quotes[date]
+    }));
+});
+
+const getChartGridY = (i) => {
+  return 20 + ((i - 1) * 70); 
+};
+
+const getChartGridVal = (min, max, i) => {
+  const ratio = (3 - i) / 2;
+  return min + (max - min) * ratio;
+};
+
+const chartLines = computed(() => {
+  const pts = chartPoints.value;
+  if(pts.length === 0) return [];
+  
+  const width = 750;
+  const height = 140;
+
+  return filteredQuotes.value.map(sym => {
+    let min = Infinity;
+    let max = -Infinity;
+    
+    // Calculate local min max
+    pts.forEach(p => {
+      const val = p.rates[currentBase.value + sym];
+      if (val !== undefined && val !== null) {
+        if(val < min) min = val;
+        if(val > max) max = val;
+      }
+    });
+
+    if (min === Infinity) { min = 0; max = 1; }
+    const padding = (max - min) * 0.1 || max * 0.1;
+    min = Math.max(0, min - padding);
+    max = max + padding;
+    
+    const range = max - min || 1;
+    const points = [];
+
+    pts.forEach((p, index) => {
+      const val = p.rates[currentBase.value + sym];
+      if(val !== undefined && val !== null) {
+        const x = 50 + (pts.length > 1 ? (index / (pts.length - 1)) * width : width / 2);
+        const y = 160 - ((val - min) / range) * height;
+        points.push({ x, y, val, date: p.date });
+      }
+    });
+    
+    let path = "";
+    points.forEach((pt, i) => {
+      path += (i === 0 ? `M ${pt.x} ${pt.y}` : ` L ${pt.x} ${pt.y}`);
+    });
+
+    return { currency: sym, points, path, min, max };
+  }).filter(l => l.points.length > 0);
+});
+
+// Load Settings from File Initialy
+onMounted(async () => {
+  try {
+    const res = await apiClient.get('/api/rates/settings');
+    if (res.data) {
+      if (res.data.baseCurrency) currentBase.value = res.data.baseCurrency;
+      if (res.data.watchedCurrencies && res.data.watchedCurrencies.length > 0) watchedCurrencies.value = res.data.watchedCurrencies;
+      if (res.data.lang) lang.value = res.data.lang;
+    }
+  } catch(e) {
+    console.error("No custom settings loaded, using defaults.");
+  }
+  
+  // Followed by fetching standard data
+  fetchCurrentRates();
+});
 </script>
 
 <style scoped>
-.container { max-width: 900px; margin: 0 auto; font-family: 'Segoe UI', Tahoma, sans-serif; padding: 20px; color: #333; }
-.lang-switch { display: flex; justify-content: flex-end; gap: 5px; margin-bottom: 10px; }
-.lang-switch button { border: 1px solid #ccc; background: white; cursor: pointer; padding: 5px 10px; border-radius: 4px; }
-.lang-switch button.active { background: #42b983; color: white; border-color: #42b983; }
+/* CSS Variables for Permanently Dark Theme */
+.dashboard-container {
+  --bg-body: #111827;
+  --bg-card: #1f2937;
+  --bg-input: #374151;
+  --bg-hover: #4b5563;
+  --text-main: #f3f4f6;
+  --text-muted: #9ca3af;
+  --border-color: #374151;
+  --border-strong: #4b5563;
+  --primary: #3b82f6;
+  --primary-hover: #2563eb;
+  --pill-bg: #374151;
+  --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
 
-.card { background: white; padding: 25px; border-radius: 12px; margin-bottom: 25px; border: 1px solid #eee; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-.config-section { display: flex; flex-direction: column; gap: 15px; }
+  min-height: 100vh;
+  background-color: var(--bg-body);
+  color: var(--text-main);
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  padding: 30px 20px;
+}
 
-.checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 10px; background: #fdfdfd; padding: 10px; border: 1px solid #f0f0f0; border-radius: 6px; }
-.check-item { font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 5px; }
+/* Base Styles */
+h1, h2, h3, h4, p { margin-top: 0; color: var(--text-main); }
+h3 { font-size: 1.1rem; margin-bottom: 12px; }
+h4 { margin-top: 0; margin-bottom: 16px; font-weight: 600; font-size: 1.05rem; color: var(--text-main); }
+.mt-4 { margin-top: 24px; }
+.mb-4 { margin-bottom: 24px; }
 
-select { padding: 8px; border-radius: 4px; border: 1px solid #ddd; width: 150px; }
-.main-btn { background: #2c3e50; color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; }
-.main-btn:hover { background: #34495e; }
+/* Header */
+.header-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.user-greeting {
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-right: 8px;
+}
+.header-bar h1 {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
 
-.table-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 15px; }
-.date-info { font-size: 0.9em; color: #666; }
+/* Cards */
+.card {
+  max-width: 800px;
+  margin: 0 auto 24px auto;
+  background: var(--bg-card);
+  padding: 24px;
+  border-radius: 16px;
+  box-shadow: var(--card-shadow);
+  border: 1px solid var(--border-color);
+  transition: all 0.3s;
+}
 
-.rate-table { width: 100%; border-collapse: collapse; }
-.rate-table th { background: #f8f9fa; text-align: left; padding: 12px; border-bottom: 2px solid #eee; }
-.rate-table td { padding: 12px; border-bottom: 1px solid #eee; }
-.rate-table tr:hover { background: #fcfcfc; }
+/* Action Bar */
+.action-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+}
+.action-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.currency-label {
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.badge {
+  background: rgba(37, 99, 235, 0.1);
+  color: var(--primary);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  border: 1px solid rgba(37, 99, 235, 0.2);
+}
 
-.history-results { display: flex; flex-direction: column; gap: 8px; margin-top: 15px; }
-.history-day { background: #f8f9fa; padding: 8px 15px; border-radius: 4px; font-family: monospace; }
-.day-date { font-weight: bold; color: #42b983; }
+/* Buttons */
+button {
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.icon-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.icon-btn:hover { background: var(--bg-hover); }
+
+.main-btn {
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+.main-btn:hover:not(:disabled) { background: var(--primary-hover); transform: translateY(-1px); }
+.main-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+.secondary-btn {
+  background: var(--bg-card);
+  color: var(--text-main);
+  border: 1px solid var(--border-strong);
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+.secondary-btn:hover:not(:disabled) { background: var(--bg-hover); }
+
+/* Settings Form */
+.form-group {
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.form-group label { color: var(--text-muted); font-size: 0.9rem; }
+.modern-select, .modern-input {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border-strong);
+  background-color: var(--bg-input);
+  font-size: 1rem;
+  color: var(--text-main);
+  outline: none;
+  color-scheme: dark;
+}
+.modern-select:focus, .modern-input:focus {
+  border-color: var(--primary);
+  background-color: var(--bg-card);
+}
+
+.checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(85px, 1fr));
+  gap: 12px;
+  background: var(--bg-input);
+  padding: 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+}
+.modern-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.modern-check input { width: 16px; height: 16px; accent-color: var(--primary); }
+.check-text { font-size: 0.95rem; font-weight: 500; color: var(--text-main); }
+
+/* Modals */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.modal {
+  background: var(--bg-card);
+  width: 90%;
+  max-width: 480px;
+  border-radius: 16px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+}
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-color);
+}
+.close-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--text-muted);
+  padding: 0;
+}
+.close-btn:hover { color: var(--text-main); }
+.modal-body { padding: 24px; }
+.modal-footer {
+  padding: 20px 24px;
+  background: var(--bg-input);
+  border-top: 1px solid var(--border-color);
+}
+.w-full { width: 100%; }
+
+/* Error Modal Specifics */
+.error-modal { border-top: 4px solid #ef4444; }
+.error-header h2 { color: #ef4444; }
+.text-center { text-align: center; }
+.error-text { font-size: 1.1rem; font-weight: 600; margin-bottom: 8px; }
+.error-subtext { color: var(--text-muted); margin-bottom: 24px; }
+.last-data-box {
+  background: var(--bg-input);
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+/* Tables */
+.table-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px; }
+.date-info { font-size: 0.9rem; color: var(--text-muted); font-weight: 500; }
+.table-responsive { overflow-x: auto; }
+.rate-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+.rate-table th {
+  background: var(--bg-input);
+  text-align: left;
+  padding: 14px 16px;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-color);
+}
+.rate-table th:first-child { border-top-left-radius: 8px; }
+.rate-table th:last-child { border-top-right-radius: 8px; }
+.rate-table td {
+  padding: 16px;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-main);
+}
+.rate-table tr:hover td { background: var(--bg-hover); }
+.currency-cell { display: flex; align-items: center; gap: 12px; }
+.rate-value { font-family: 'Roboto Mono', monospace; font-weight: 600; color: var(--text-main); }
+
+/* Stats */
+.stats-row { display: flex; gap: 12px; margin-bottom: 20px; }
+.stat-badge {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+.stat-badge.success { background: rgba(5, 150, 105, 0.1); color: #10b981; border: 1px solid #10b981; }
+.stat-badge.danger { background: rgba(220, 38, 38, 0.1); color: #ef4444; border: 1px solid #ef4444; }
+
+/* History Section */
+.history-controls {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 20px 0;
+}
+.date-group { display: flex; align-items: center; gap: 8px; }
+.date-separator { color: var(--text-muted); font-weight: bold; }
+
+/* Individual Multi-Charts Section */
+.history-charts-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+}
+.individual-chart-card {
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 16px 20px;
+}
+.chart-title {
+  color: var(--text-main);
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+.svg-chart {
+  width: 100%;
+  height: auto;
+  border-bottom: 2px solid var(--border-color);
+  border-left: 2px solid var(--border-color);
+}
+.grid-line { stroke: var(--border-color); stroke-width: 1; stroke-dasharray: 4; }
+.axis-text { font-family: sans-serif; font-size: 11px; fill: var(--text-muted); }
+.y-axis { text-anchor: end; }
+.x-axis.start { text-anchor: start; }
+.x-axis.middle { text-anchor: middle; }
+.x-axis.end { text-anchor: end; }
+.chart-point { transition: r 0.2s; cursor: crosshair; }
+.chart-point:hover { r: 6; }
 </style>

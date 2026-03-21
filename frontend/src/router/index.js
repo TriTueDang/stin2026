@@ -1,25 +1,34 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
-import HelloWorld from '@/components/HelloWorld.vue'
 import ExchangeRate from '@/components/ExchangeRate.vue'
+import Login from '@/components/Login.vue'
 
 const routes = [
   {
+    path: '/login',
+    component: Login
+  },
+  {
     path: '/',
-    component: ExchangeRate
-    // component: HelloWorld
+    component: ExchangeRate,
+    meta: { requiresAuth: true }
   }
 ]
 
-export default createRouter({
+const router = createRouter({
   history: createWebHistory(),
   routes
 })
-// import { createRouter, createWebHistory } from 'vue-router'
 
-// const router = createRouter({
-//   history: createWebHistory(import.meta.env.BASE_URL),
-//   routes: [],
-// })
+router.beforeEach((to, from, next) => {
+  const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
+  if (to.meta.requiresAuth && !isAuthenticated) {
+    next('/login');
+  } else if (to.path === '/login' && isAuthenticated) {
+    next('/');
+  } else {
+    next();
+  }
+});
 
-// export default router
+export default router
