@@ -2,9 +2,15 @@
   <div class="dashboard-container" :class="theme">
     <div class="header-bar">
       <h1>{{ t[lang].title }}</h1>
-      <button class="icon-btn settings-btn" @click="showSettings = true">
-        ⚙️ {{ t[lang].settings }}
-      </button>
+      <div class="header-actions">
+        <span class="user-greeting">👤 {{ loggedInUser }}</span>
+        <button class="icon-btn settings-btn" @click="showSettings = true">
+          ⚙️ {{ t[lang].settings }}
+        </button>
+        <button class="icon-btn logout-btn" @click="handleLogout">
+          🚪 {{ t[lang].logout }}
+        </button>
+      </div>
     </div>
 
     <!-- Main action bar -->
@@ -206,7 +212,18 @@
 
 <script setup>
 import { ref, computed } from 'vue';
+import { useRouter } from 'vue-router';
 import apiClient from '@/services/api';
+
+const router = useRouter();
+const loggedInUser = ref(localStorage.getItem('user') || 'Admin');
+
+const handleLogout = () => {
+  localStorage.removeItem('isAuthenticated');
+  localStorage.removeItem('user');
+  localStorage.removeItem('basicAuthToken');
+  router.push('/login');
+};
 
 const lang = ref('cs');
 const loading = ref(false);
@@ -257,7 +274,8 @@ const t = {
     strongest: 'Nejsilnější',
     weakest: 'Nejslabší',
     averageSelected: 'Průměr vybraných měn',
-    averageRate: 'Průměrný kurz'
+    averageRate: 'Průměrný kurz',
+    logout: 'Odhlásit se'
   },
   en: {
     title: 'Exchange Rates',
@@ -284,7 +302,8 @@ const t = {
     strongest: 'Strongest',
     weakest: 'Weakest',
     averageSelected: 'Average of selected currencies',
-    averageRate: 'Average Rate'
+    averageRate: 'Average Rate',
+    logout: 'Logout'
   }
 };
 
@@ -300,6 +319,7 @@ const formatDate = (ts) => {
 const saveSettings = () => {
   showSettings.value = false;
   fetchCurrentRates();
+  fetchTimeframe();
 };
 
 const fetchCurrentRates = async () => {
@@ -410,7 +430,7 @@ const chartLines = computed(() => {
 });
 
 // Initial load
-fetchCurrentRates();
+// fetchCurrentRates();
 </script>
 
 <style scoped>
@@ -470,6 +490,16 @@ h4 { margin-top: 0; margin-bottom: 16px; font-weight: 600; font-size: 1.05rem; c
   max-width: 800px;
   margin-left: auto;
   margin-right: auto;
+}
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.user-greeting {
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-right: 8px;
 }
 .header-bar h1 {
   margin: 0;
