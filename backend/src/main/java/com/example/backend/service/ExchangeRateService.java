@@ -2,10 +2,7 @@ package com.example.backend.service;
 
 
 import com.example.backend.client.ExchangeRateClient;
-import com.example.backend.dto.CurrentRatesStatistics;
-import com.example.backend.dto.ExchangeRateResponse;
-import com.example.backend.dto.HistoricalRatesStatistics;
-import com.example.backend.dto.TimeframeResponse;
+import com.example.backend.dto.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -48,11 +45,11 @@ public class ExchangeRateService {
         return statisticsService.calculateTimeframeAll(response, watched);
     }
 
-    public com.example.backend.dto.UserSettings getSettings() {
+    public UserSettings getSettings() {
         return storage.loadSettings(storagePath + "user_settings.json");
     }
 
-    public void saveSettings(com.example.backend.dto.UserSettings settings) {
+    public void saveSettings(UserSettings settings) {
         storage.saveSettings(settings, storagePath + "user_settings.json");
     }
 }

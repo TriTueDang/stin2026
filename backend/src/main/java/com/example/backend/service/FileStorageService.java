@@ -2,6 +2,7 @@ package com.example.backend.service;
 
 import com.example.backend.dto.ExchangeRateResponse;
 import com.example.backend.dto.TimeframeResponse;
+import com.example.backend.dto.UserSettings;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
 
@@ -55,7 +56,7 @@ public class FileStorageService {
         }
     }
 
-    public void saveSettings(com.example.backend.dto.UserSettings settings, String filepath) {
+    public void saveSettings(UserSettings settings, String filepath) {
         try {
             File file = new File(filepath);
             file.getParentFile().mkdirs();
@@ -65,13 +66,13 @@ public class FileStorageService {
         }
     }
 
-    public com.example.backend.dto.UserSettings loadSettings(String filepath) {
+    public UserSettings loadSettings(String filepath) {
         try {
             File file = new File(filepath);
             if (!file.exists()) {
-                return new com.example.backend.dto.UserSettings();
+                return new UserSettings();
             }
-            return objectMapper.readValue(file, com.example.backend.dto.UserSettings.class);
+            return objectMapper.readValue(file, UserSettings.class);
         } catch (Exception e) {
             throw new RuntimeException("Failed to load settings", e);
         }
