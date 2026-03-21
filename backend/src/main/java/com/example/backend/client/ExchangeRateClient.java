@@ -21,12 +21,12 @@ public class ExchangeRateClient {
     public ExchangeRateResponse getRates(String base) {
 
         // For live rates, use the /live endpoint
-//        String url = apiUrl + "/live" + "?access_key=" + apiKey + "&source=" + base;
-//        return restTemplate.getForObject(url, ExchangeRateResponse.class);
+        String url = apiUrl + "/live" + "?access_key=" + apiKey + "&source=" + base;
+        return restTemplate.getForObject(url, ExchangeRateResponse.class);
 
         // For historical rates, use the /historical endpoint with a specific date
-        String url = apiUrl + "/historical" + "?access_key=" + apiKey + "&date=2026-03-15";
-        return restTemplate.getForObject(url, ExchangeRateResponse.class);
+//        String url = apiUrl + "/historical" + "?access_key=" + apiKey + "&date=2026-03-15";
+//        return restTemplate.getForObject(url, ExchangeRateResponse.class);
 
 
     }
