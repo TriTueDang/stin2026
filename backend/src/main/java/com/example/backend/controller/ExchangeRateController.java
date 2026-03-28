@@ -32,10 +32,10 @@ public class ExchangeRateController {
         return service.getHistoricalRates(request.getBase(), request.getStartDate(), request.getEndDate());
     }
 
-
     @PostMapping("/history/statistics")
     public HistoricalRatesStatistics getHistoricalStatistics(@Valid @RequestBody HistoricalStatisticsRequest request) {
-        return service.getHistoricalStatistics(request.getBase(), request.getStartDate(), request.getEndDate(), request.getWatched());
+        return service.getHistoricalStatistics(request.getBase(), request.getStartDate(), request.getEndDate(),
+                request.getWatched());
     }
 
     @GetMapping("/settings")
