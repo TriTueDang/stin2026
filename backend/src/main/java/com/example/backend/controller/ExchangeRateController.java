@@ -1,13 +1,9 @@
 package com.example.backend.controller;
 
-import com.example.backend.dto.CurrentRatesStatistics;
-import com.example.backend.dto.HistoricalRatesStatistics;
-import com.example.backend.dto.TimeframeResponse;
-import com.example.backend.dto.UserSettings;
+import com.example.backend.dto.*;
 import com.example.backend.service.ExchangeRateService;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/rates")
@@ -19,30 +15,24 @@ public class ExchangeRateController {
         this.service = service;
     }
 
-    @GetMapping("/current/{base}")
-    public CurrentRatesStatistics getCurrentRates(@PathVariable("base") String base, @RequestParam("watched") List<String> watched) {
+    @PostMapping("/current")
+    public CurrentRatesStatistics getCurrentRates(@Valid @RequestBody ExchangeRateRequest request) {
         // return rates and max, min for watched currencies
-        return service.getCurrentRates(base, watched);
+        return service.getCurrentRates(request);
     }
 
-    @GetMapping("/history/{base}/{startDate}/{endDate}")
-    public TimeframeResponse getHistoricalRates(@PathVariable("base") String base,@PathVariable("startDate") String startDate,@PathVariable("endDate") String endDate) {
-        return service.getHistoricalRates(base, startDate, endDate);
-    }
-
-
-    @GetMapping("/history/statistics/{base}/{startDate}/{endDate}")
-    public HistoricalRatesStatistics getHistoricalStatistics(@PathVariable("base") String base, @PathVariable("startDate") String startDate, @PathVariable("endDate") String endDate, @RequestParam("watched") List<String> watched) {
-        return service.getHistoricalStatistics(base, startDate, endDate, watched);
+    @PostMapping("/history")
+    public HistoricalDataResponse getHistoricalData(@Valid @RequestBody HistoricalStatisticsRequest request) {
+        return service.getHistoricalData(request);
     }
 
     @GetMapping("/settings")
-    public UserSettings getSettings() {
+    public UserSettingsResponse getSettings() {
         return service.getSettings();
     }
 
     @PostMapping("/settings")
-    public void saveSettings(@RequestBody UserSettings settings) {
+    public void saveSettings(@Valid @RequestBody UserSettingsRequest settings) {
         service.saveSettings(settings);
     }
 }

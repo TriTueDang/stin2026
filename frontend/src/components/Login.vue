@@ -36,7 +36,10 @@ const handleLogin = async () => {
   const token = btoa(`${username.value}:${password.value}`);
   try {
     // Validates login via backend
-    await apiClient.get(`/api/rates/current/EUR?watched=USD`, {
+    await apiClient.post(`/api/rates/current`, {
+      base: 'EUR',
+      watched: ['USD']
+    }, {
       headers: { Authorization: `Basic ${token}` }
     });
     localStorage.setItem('isAuthenticated', 'true');
