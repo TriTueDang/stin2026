@@ -70,6 +70,7 @@
       <div class="modal error-modal">
         <div class="modal-header error-header">
           <h2>⚠️ {{ t[lang].errorTitle }}</h2>
+          <button class="close-btn" @click="closeError">×</button>
         </div>
         <div class="modal-body text-center">
           <p class="error-text">{{ t[lang].fetchError }}</p>
@@ -303,20 +304,42 @@ const formatDate = (ts) => {
 };
 
 const saveSettings = async () => {
-  showSettings.value = false;
-  // Push config to backend file storage
+  backendErrors.value = [];
   try {
     await apiClient.post('/api/rates/settings', {
       baseCurrency: currentBase.value,
       watchedCurrencies: watchedCurrencies.value,
       lang: lang.value
     });
+    showSettings.value = false; // Close settings only on success
+    fetchCurrentRates();
+    fetchTimeframe();
   } catch(e) {
-    console.error("Failed to persist settings.");
+    handleApiError(e);
   }
+};
 
-  fetchCurrentRates();
-  fetchTimeframe();
+const handleApiError = (err) => {
+  console.error(err);
+  error.value = "API Error";
+  backendErrors.value = [];
+
+  if (err.response && err.response.data) {
+    if (err.response.data.errors && Array.isArray(err.response.data.errors)) {
+      backendErrors.value = err.response.data.errors;
+    } else if (err.response.data.message) {
+      backendErrors.value = [err.response.data.message];
+    } else {
+      backendErrors.value = [JSON.stringify(err.response.data)];
+    }
+  } else if (err.message) {
+    backendErrors.value = [err.message];
+  }
+};
+
+const closeError = () => {
+  error.value = null;
+  backendErrors.value = [];
 };
 
 const handleApiError = (err) => {
@@ -341,8 +364,7 @@ const fetchCurrentRates = async () => {
   loading.value = true;
   error.value = null;
   backendErrors.value = [];
-  // currentBase.value = "bbbb"; // Force error for testing
-  // watchedCurrencies.value = null; // Force error for testing
+  
 
   try {
     const response = await apiClient.post('/api/rates/current', {
@@ -365,22 +387,16 @@ const fetchTimeframe = async () => {
   historyData.value = null;
   historyStatsData.value = null;
   backendErrors.value = [];
+
   try {
-    const [historyRes, statsRes] = await Promise.all([
-      apiClient.post('/api/rates/history', {
-        base: currentBase.value,
-        startDate: startDate.value,
-        endDate: endDate.value
-      }),
-      apiClient.post('/api/rates/history/statistics', {
-        base: currentBase.value,
-        startDate: startDate.value,
-        endDate: endDate.value,
-        watched: watchedCurrencies.value
-      })
-    ]);
-    historyData.value = historyRes.data;
-    historyStatsData.value = statsRes.data;
+    const response = await apiClient.post('/api/rates/history', {
+      base: currentBase.value,
+      startDate: startDate.value,
+      endDate: endDate.value,
+      watched: watchedCurrencies.value
+    });
+    historyData.value = response.data.history;
+    historyStatsData.value = response.data.statistics;
   } catch (err) {
     handleApiError(err);
   } finally {
@@ -824,3 +840,4 @@ button {
 .chart-point { transition: r 0.2s; cursor: crosshair; }
 .chart-point:hover { r: 6; }
 </style>
+
