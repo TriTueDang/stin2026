@@ -1,67 +1,146 @@
 package com.example.backend.service;
 
-
-import com.example.backend.client.ExchangeRateClient;
+import com.example.backend.client.ExchangeRateProvider;
 import com.example.backend.dto.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
 public class ExchangeRateService {
 
-    private final ExchangeRateClient client;
+    private static final String RATES_FILE = "rates-live.json";
+    private static final String TIMEFRAME_FILE = "timeframe_rates.json";
+    private static final String SETTINGS_FILE = "user_settings.json";
+
+    private final ExchangeRateProvider client;
     private final FileStorageService storage;
     private final StatisticsService statisticsService;
 
     @Value("${storage.path:data/}")
     private String storagePath;
 
-    public ExchangeRateService(ExchangeRateClient client, FileStorageService storage, StatisticsService statisticsService) {
+    @Value("${app.use-real-api:false}")
+    private boolean useRealApi;
+
+    public ExchangeRateService(ExchangeRateProvider client, FileStorageService storage,
+            StatisticsService statisticsService) {
         this.client = client;
         this.storage = storage;
         this.statisticsService = statisticsService;
     }
 
-    public CurrentRatesStatistics getCurrentRates(String base, List<String> watched) {
+    public CurrentRatesStatistics getCurrentRates(ExchangeRateRequest request) {
+        ExchangeRateResponse response = null;
+        if (useRealApi) {
+            try {
+                response = client.getRates(request.getBase());
+                if (response != null && response.isSuccess()) {
+                    storage.saveData(response, storagePath + RATES_FILE);
+                }
+            } catch (Exception e) {
+                log.error("API current rates failed: {}", e.getMessage());
+            }
+        }
 
-//        ExchangeRateResponse response = client.getRates(base);
-//        storage.saveRates(response, storagePath + "rates4.json");
-//        return response;
-        ExchangeRateResponse response = storage.loadRates(storagePath + "rates-live.json");
-        log.info("Get current rates for base: {}, watched: {}", base, watched);
-        return statisticsService.calculateCurrentAll(response, watched);
+        if (response == null || !response.isSuccess()) {
+            response = storage.loadData(storagePath + RATES_FILE, ExchangeRateResponse.class);
+        }
+
+        if (response == null) {
+            throw new RuntimeException("Current exchange rates not available from API or storage");
+        }
+
+        log.info("Get current rates for base: {}, watched: {}, useRealApi: {}", request.getBase(), request.getWatched(), useRealApi);
+        return statisticsService.calculateCurrentAll(response, request.getWatched());
     }
-    public TimeframeResponse getHistoricalRates(String base, String startDate, String endDate) {
-//        TimeframeResponse response = client.getTimeframeExchangeRates(base, startDate, endDate);
-//        storage.saveRates(response, storagePath + "timeframe_rates.json");
-//        return response;
-        return storage.loadTimeframe(storagePath + "timeframe_rates.json");
 
+    public HistoricalDataResponse getHistoricalData(HistoricalStatisticsRequest request) {
+        TimeframeResponse fullResponse = getTimeframeData(request.getBase(), request.getStartDate(),
+                request.getEndDate());
+
+        HistoricalRatesStatistics stats = statisticsService.calculateTimeframeAll(fullResponse, request.getWatched());
+
+        TimeframeResponse filteredResponse = filterTimeframeData(fullResponse, request.getWatched());
+
+        return new HistoricalDataResponse(filteredResponse, stats);
     }
-    public HistoricalRatesStatistics getHistoricalStatistics(String base, String startDate, String endDate, List<String> watched) {
 
-        TimeframeResponse response = storage.loadTimeframe(storagePath + "timeframe_rates.json");
-        return statisticsService.calculateTimeframeAll(response, watched);
+    private TimeframeResponse filterTimeframeData(TimeframeResponse original, List<String> watched) {
+        if (original == null || original.getQuotes() == null)
+            return original;
+
+        TimeframeResponse filtered = new TimeframeResponse();
+        filtered.setSuccess(original.isSuccess());
+        filtered.setSource(original.getSource());
+        filtered.setStart_date(original.getStart_date());
+        filtered.setEnd_date(original.getEnd_date());
+
+        String prefix = original.getSource();
+        Map<String, Map<String, Double>> filteredQuotes = original.getQuotes().entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        entry -> watched.stream()
+                                .map(currency -> prefix + currency)
+                                .filter(entry.getValue()::containsKey)
+                                .collect(Collectors.toMap(k -> k, k -> entry.getValue().get(k)))));
+
+        filtered.setQuotes(filteredQuotes);
+        return filtered;
     }
 
-    public UserSettings getSettings() {
-        try{
-            return storage.loadSettings(storagePath + "user_settings.json");
+    private TimeframeResponse getTimeframeData(String base, String start, String end) {
+        TimeframeResponse response = null;
+        if (useRealApi) {
+            try {
+                response = client.getTimeframeExchangeRates(base, start, end);
+                if (response != null && response.isSuccess()) {
+                    storage.saveData(response, storagePath + TIMEFRAME_FILE);
+                    return response;
+                }
+            } catch (Exception e) {
+                log.error("API timeframe failed: {}", e.getMessage());
+            }
+        }
+
+        response = storage.loadData(storagePath + TIMEFRAME_FILE, TimeframeResponse.class);
+        if (response == null) {
+            throw new RuntimeException("Timeframe data not available from API or storage");
+        }
+        return response;
+    }
+
+    public UserSettingsResponse getSettings() {
+        try {
+            return storage.loadData(storagePath + SETTINGS_FILE, UserSettingsResponse.class);
         } catch (Exception e) {
             // If loading fails, return default settings
-            UserSettings defaultSettings = new UserSettings();
-            defaultSettings.setWatchedCurrencies(List.of("USD", "EUR", "GBP"));
+            UserSettingsResponse defaultSettings = new UserSettingsResponse();
+            defaultSettings.setBaseCurrency(Currency.EUR);
+            defaultSettings.setWatchedCurrencies(List.of(Currency.USD, Currency.EUR, Currency.GBP));
+            defaultSettings.setLang(Language.cs);
             log.warn("Failed to get user settings, returning default settings: {}", e.getMessage());
             return defaultSettings;
         }
-//        return storage.loadSettings(storagePath + "user_settings.json");
     }
 
-    public void saveSettings(UserSettings settings) {
-        storage.saveSettings(settings, storagePath + "user_settings.json");
+    public void saveSettings(UserSettingsRequest settings) {
+        storage.saveData(settings, storagePath + SETTINGS_FILE);
     }
 }
+
+    
+    
+        
+        
+        
+        
+        
+        
+        
+    

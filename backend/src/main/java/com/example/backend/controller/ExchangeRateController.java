@@ -1,12 +1,6 @@
 package com.example.backend.controller;
 
-import com.example.backend.dto.CurrentRatesStatistics;
-import com.example.backend.dto.HistoricalRatesStatistics;
-import com.example.backend.dto.TimeframeResponse;
-import com.example.backend.dto.UserSettings;
-import com.example.backend.dto.ExchangeRateRequest;
-import com.example.backend.dto.HistoricalStatisticsRequest;
-import com.example.backend.dto.HistoricalRatesRequest;
+import com.example.backend.dto.*;
 import com.example.backend.service.ExchangeRateService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
@@ -24,27 +18,21 @@ public class ExchangeRateController {
     @PostMapping("/current")
     public CurrentRatesStatistics getCurrentRates(@Valid @RequestBody ExchangeRateRequest request) {
         // return rates and max, min for watched currencies
-        return service.getCurrentRates(request.getBase(), request.getWatched());
+        return service.getCurrentRates(request);
     }
 
     @PostMapping("/history")
-    public TimeframeResponse getHistoricalRates(@Valid @RequestBody HistoricalRatesRequest request) {
-        return service.getHistoricalRates(request.getBase(), request.getStartDate(), request.getEndDate());
-    }
-
-    @PostMapping("/history/statistics")
-    public HistoricalRatesStatistics getHistoricalStatistics(@Valid @RequestBody HistoricalStatisticsRequest request) {
-        return service.getHistoricalStatistics(request.getBase(), request.getStartDate(), request.getEndDate(),
-                request.getWatched());
+    public HistoricalDataResponse getHistoricalData(@Valid @RequestBody HistoricalStatisticsRequest request) {
+        return service.getHistoricalData(request);
     }
 
     @GetMapping("/settings")
-    public UserSettings getSettings() {
+    public UserSettingsResponse getSettings() {
         return service.getSettings();
     }
 
     @PostMapping("/settings")
-    public void saveSettings(@RequestBody UserSettings settings) {
+    public void saveSettings(@Valid @RequestBody UserSettingsRequest settings) {
         service.saveSettings(settings);
     }
 }

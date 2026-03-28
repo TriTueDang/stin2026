@@ -11,7 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Component
 @Slf4j
-public class ExchangeRateClient {
+public class ExchangeRateClient implements ExchangeRateProvider {
 
     @Value("${exchange.api.url}")
     private String apiUrl;
@@ -21,6 +21,7 @@ public class ExchangeRateClient {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
+    @Override
     public ExchangeRateResponse getRates(String base) {
 
         // For live rates, use the /live endpoint
@@ -33,18 +34,21 @@ public class ExchangeRateClient {
         }
 
         // For historical rates, use the /historical endpoint with a specific date
-//        String url = apiUrl + "/historical" + "?access_key=" + apiKey + "&date=2026-03-15";
-//        return restTemplate.getForObject(url, ExchangeRateResponse.class);
-
+        // String url = apiUrl + "/historical" + "?access_key=" + apiKey +
+        // "&date=2026-03-15";
+        // return restTemplate.getForObject(url, ExchangeRateResponse.class);
 
     }
+
+    @Override
     public TimeframeResponse getTimeframeExchangeRates(String base, String startDate, String endDate) {
         String url = apiUrl + "/timeframe" + "?access_key=" + apiKey + "&source=" + base
                 + "&start_date=" + startDate + "&end_date=" + endDate;
         try {
             return restTemplate.getForObject(url, TimeframeResponse.class);
         } catch (RestClientException e) {
-            log.error("API error while fetching timeframe rates for base {} from {} to {}: {}", base, startDate, endDate, e.getMessage());
+            log.error("API error while fetching timeframe rates for base {} from {} to {}: {}", base, startDate,
+                    endDate, e.getMessage());
             throw e;
         }
     }
