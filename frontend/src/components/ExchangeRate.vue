@@ -172,7 +172,7 @@
           <svg class="svg-chart" viewBox="0 0 800 200" preserveAspectRatio="none">
             <!-- Grid Lines -->
             <line v-for="i in 3" :key="'grid'+i" x1="45" :y1="getChartGridY(i)" x2="800" :y2="getChartGridY(i)" class="grid-line" />
-            
+
             <!-- Y Axis Labels -->
             <text v-for="i in 3" :key="'ytxt'+i" x="40" :y="getChartGridY(i) + 4" class="axis-text y-axis">
               {{ getChartGridVal(chartLine.min, chartLine.max, i).toFixed(4) }}
@@ -180,7 +180,7 @@
 
             <!-- Line -->
             <path :d="chartLine.path" class="chart-line" :stroke="colors[index % colors.length]" fill="none" stroke-width="3" stroke-linejoin="round" />
-            
+
             <!-- Points -->
             <circle v-for="(pt, pi) in chartLine.points" :key="pi" :cx="pt.x" :cy="pt.y" r="4" :fill="colors[index % colors.length]" class="chart-point">
               <title>{{ pt.date }}: {{ pt.val.toFixed(4) }}</title>
@@ -236,7 +236,7 @@ const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'
 // Translations
 const t = {
   cs: {
-    title: 'Kurzovní lístek',
+    title: 'Měnový analyzátor',
     baseCurrency: 'Základní měna',
     settings: 'Nastavení',
     defaultBase: 'Výchozí základní měna',
@@ -261,7 +261,7 @@ const t = {
     logout: 'Odhlásit se'
   },
   en: {
-    title: 'Exchange Rates',
+    title: 'Exchange Rates Analyzer',
     baseCurrency: 'Base Currency',
     settings: 'Settings',
     defaultBase: 'Default base currency',
@@ -317,7 +317,7 @@ const fetchCurrentRates = async () => {
   loading.value = true;
   error.value = null;
   try {
-    const response = await apiClient.get(`/api/rates/current/${currentBase.value}`, {
+    const response = await apiClient.get(`/api/rates/current/${encodeURIComponent(currentBase.value)}`, {
       params: { watched: watchedCurrencies.value.join(',') }
     });
     currentData.value = response.data;
@@ -338,8 +338,8 @@ const fetchTimeframe = async () => {
   historyStatsData.value = null;
   try {
     const [historyRes, statsRes] = await Promise.all([
-      apiClient.get(`/api/rates/history/${currentBase.value}/${startDate.value}/${endDate.value}`),
-      apiClient.get(`/api/rates/history/statistics/${currentBase.value}/${startDate.value}/${endDate.value}`, {
+      apiClient.get(`/api/rates/history/${encodeURIComponent(currentBase.value)}/${encodeURIComponent(startDate.value)}/${encodeURIComponent(endDate.value)}`),
+      apiClient.get(`/api/rates/history/statistics/${encodeURIComponent(currentBase.value)}/${encodeURIComponent(startDate.value)}/${encodeURIComponent(endDate.value)}`, {
         params: { watched: watchedCurrencies.value.join(',') }
       })
     ]);
@@ -347,6 +347,7 @@ const fetchTimeframe = async () => {
     historyStatsData.value = statsRes.data;
   } catch (err) {
     console.error(err);
+    error.value = "API Error"; // Triggers the modal
   } finally {
     loading.value = false;
   }
@@ -364,7 +365,7 @@ const chartPoints = computed(() => {
 });
 
 const getChartGridY = (i) => {
-  return 20 + ((i - 1) * 70); 
+  return 20 + ((i - 1) * 70);
 };
 
 const getChartGridVal = (min, max, i) => {
@@ -375,14 +376,14 @@ const getChartGridVal = (min, max, i) => {
 const chartLines = computed(() => {
   const pts = chartPoints.value;
   if(pts.length === 0) return [];
-  
+
   const width = 750;
   const height = 140;
 
   return filteredQuotes.value.map(sym => {
     let min = Infinity;
     let max = -Infinity;
-    
+
     // Calculate local min max
     pts.forEach(p => {
       const val = p.rates[currentBase.value + sym];
@@ -396,7 +397,7 @@ const chartLines = computed(() => {
     const padding = (max - min) * 0.1 || max * 0.1;
     min = Math.max(0, min - padding);
     max = max + padding;
-    
+
     const range = max - min || 1;
     const points = [];
 
@@ -408,7 +409,7 @@ const chartLines = computed(() => {
         points.push({ x, y, val, date: p.date });
       }
     });
-    
+
     let path = "";
     points.forEach((pt, i) => {
       path += (i === 0 ? `M ${pt.x} ${pt.y}` : ` L ${pt.x} ${pt.y}`);
@@ -430,7 +431,7 @@ onMounted(async () => {
   } catch(e) {
     console.error("No custom settings loaded, using defaults.");
   }
-  
+
   // Followed by fetching standard data
   fetchCurrentRates();
 });
@@ -657,19 +658,34 @@ button {
 .w-full { width: 100%; }
 
 /* Error Modal Specifics */
-.error-modal { border-top: 4px solid #ef4444; }
-.error-header h2 { color: #ef4444; }
+.error-modal {
+  border: 1px solid #ef4444;
+  box-shadow: 0 10px 25px -5px rgba(239, 68, 68, 0.15);
+}
+.error-header {
+  border-bottom: 1px solid rgba(239, 68, 68, 0.2);
+  background: rgba(239, 68, 68, 0.05);
+}
+.error-header h2 {
+  color: #ef4444;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 .text-center { text-align: center; }
-.error-text { font-size: 1.1rem; font-weight: 600; margin-bottom: 8px; }
+.error-text { font-size: 1.15rem; font-weight: 600; margin-bottom: 8px; color: var(--text-main); }
 .error-subtext { color: var(--text-muted); margin-bottom: 24px; }
 .last-data-box {
   background: var(--bg-input);
+  border: 1px solid var(--border-color);
   padding: 12px;
   border-radius: 8px;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   color: var(--text-muted);
   margin-bottom: 8px;
 }
+.retry-btn { background: #ef4444; }
+.retry-btn:hover:not(:disabled) { background: #dc2626; }
 
 /* Tables */
 .table-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px; }
