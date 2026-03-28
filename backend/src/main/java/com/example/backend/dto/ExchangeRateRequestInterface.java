@@ -11,7 +11,4 @@ public abstract class ExchangeRateRequestInterface {
     @NotBlank(message = "Base currency is required")
     @Size(min = 3, max = 3, message = "Base currency must be 3 characters")
     private String base;
-
-    @NotEmpty(message = "Watched currencies list cannot be empty")
-    private List<String> watched;
 }
