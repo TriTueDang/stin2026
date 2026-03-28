@@ -317,8 +317,9 @@ const fetchCurrentRates = async () => {
   loading.value = true;
   error.value = null;
   try {
-    const response = await apiClient.get(`/api/rates/current/${encodeURIComponent(currentBase.value)}`, {
-      params: { watched: watchedCurrencies.value.join(',') }
+    const response = await apiClient.post('/api/rates/current', {
+      base: currentBase.value,
+      watched: watchedCurrencies.value
     });
     currentData.value = response.data;
     if (response.data && response.data.exchangeRates) {
@@ -338,9 +339,16 @@ const fetchTimeframe = async () => {
   historyStatsData.value = null;
   try {
     const [historyRes, statsRes] = await Promise.all([
-      apiClient.get(`/api/rates/history/${encodeURIComponent(currentBase.value)}/${encodeURIComponent(startDate.value)}/${encodeURIComponent(endDate.value)}`),
-      apiClient.get(`/api/rates/history/statistics/${encodeURIComponent(currentBase.value)}/${encodeURIComponent(startDate.value)}/${encodeURIComponent(endDate.value)}`, {
-        params: { watched: watchedCurrencies.value.join(',') }
+      apiClient.post('/api/rates/history', {
+        base: currentBase.value,
+        startDate: startDate.value,
+        endDate: endDate.value
+      }),
+      apiClient.post('/api/rates/history/statistics', {
+        base: currentBase.value,
+        startDate: startDate.value,
+        endDate: endDate.value,
+        watched: watchedCurrencies.value
       })
     ]);
     historyData.value = historyRes.data;
