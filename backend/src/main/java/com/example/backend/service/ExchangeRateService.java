@@ -32,6 +32,7 @@ public class ExchangeRateService {
 //        storage.saveRates(response, storagePath + "rates4.json");
 //        return response;
         ExchangeRateResponse response = storage.loadRates(storagePath + "rates-live.json");
+        log.info("Get current rates for base: {}, watched: {}", base, watched);
         return statisticsService.calculateCurrentAll(response, watched);
     }
     public TimeframeResponse getHistoricalRates(String base, String startDate, String endDate) {

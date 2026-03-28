@@ -73,7 +73,12 @@
         </div>
         <div class="modal-body text-center">
           <p class="error-text">{{ t[lang].fetchError }}</p>
-          <p class="error-subtext">{{ t[lang].tryAgain }}</p>
+          <div v-if="backendErrors.length > 0" class="backend-errors-box">
+             <ul class="error-list">
+               <li v-for="msg in backendErrors" :key="msg">⚠️ {{ msg }}</li>
+             </ul>
+          </div>
+          <p v-else class="error-subtext">{{ t[lang].tryAgain }}</p>
 
           <div class="last-data-box" v-if="lastValidDate">
             ({{ t[lang].usingLastData }}: {{ formatDate(lastValidDate) }})
@@ -230,6 +235,7 @@ const historyStatsData = ref(null);
 const startDate = ref('2025-01-01');
 const endDate = ref('2025-01-10');
 const lastValidDate = ref(null);
+const backendErrors = ref([]);
 
 const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
 
@@ -313,9 +319,31 @@ const saveSettings = async () => {
   fetchTimeframe();
 };
 
+const handleApiError = (err) => {
+  console.error(err);
+  error.value = "API Error";
+  backendErrors.value = [];
+
+  if (err.response && err.response.data) {
+    if (err.response.data.errors && Array.isArray(err.response.data.errors)) {
+      backendErrors.value = err.response.data.errors;
+    } else if (err.response.data.message) {
+      backendErrors.value = [err.response.data.message];
+    } else {
+      backendErrors.value = [JSON.stringify(err.response.data)];
+    }
+  } else if (err.message) {
+    backendErrors.value = [err.message];
+  }
+};
+
 const fetchCurrentRates = async () => {
   loading.value = true;
   error.value = null;
+  backendErrors.value = [];
+  // currentBase.value = "bbbb"; // Force error for testing
+  // watchedCurrencies.value = null; // Force error for testing
+
   try {
     const response = await apiClient.post('/api/rates/current', {
       base: currentBase.value,
@@ -326,8 +354,7 @@ const fetchCurrentRates = async () => {
       lastValidDate.value = response.data.exchangeRates.timestamp;
     }
   } catch (err) {
-    console.error(err);
-    error.value = "API Error";
+    handleApiError(err);
   } finally {
     loading.value = false;
   }
@@ -337,6 +364,7 @@ const fetchTimeframe = async () => {
   loading.value = true;
   historyData.value = null;
   historyStatsData.value = null;
+  backendErrors.value = [];
   try {
     const [historyRes, statsRes] = await Promise.all([
       apiClient.post('/api/rates/history', {
@@ -354,8 +382,7 @@ const fetchTimeframe = async () => {
     historyData.value = historyRes.data;
     historyStatsData.value = statsRes.data;
   } catch (err) {
-    console.error(err);
-    error.value = "API Error"; // Triggers the modal
+    handleApiError(err);
   } finally {
     loading.value = false;
   }
@@ -694,6 +721,26 @@ button {
 }
 .retry-btn { background: #ef4444; }
 .retry-btn:hover:not(:disabled) { background: #dc2626; }
+
+.backend-errors-box {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 8px;
+  padding: 12px;
+  margin: 15px 0;
+  text-align: left;
+}
+.error-list {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+}
+.error-list li {
+  color: #ef4444;
+  font-size: 0.9rem;
+  margin-bottom: 4px;
+}
+.error-list li:last-child { margin-bottom: 0; }
 
 /* Tables */
 .table-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px; }
