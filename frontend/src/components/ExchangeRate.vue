@@ -342,12 +342,29 @@ const closeError = () => {
   backendErrors.value = [];
 };
 
+const handleApiError = (err) => {
+  console.error(err);
+  error.value = "API Error";
+  backendErrors.value = [];
+
+  if (err.response && err.response.data) {
+    if (err.response.data.errors && Array.isArray(err.response.data.errors)) {
+      backendErrors.value = err.response.data.errors;
+    } else if (err.response.data.message) {
+      backendErrors.value = [err.response.data.message];
+    } else {
+      backendErrors.value = [JSON.stringify(err.response.data)];
+    }
+  } else if (err.message) {
+    backendErrors.value = [err.message];
+  }
+};
+
 const fetchCurrentRates = async () => {
   loading.value = true;
   error.value = null;
   backendErrors.value = [];
-  // currentBase.value = "ER"; // Force error for testing
-  // watchedCurrencies.value = ["USD", "CZK", "GBP5"]; // Force error for testing
+  
 
   try {
     const response = await apiClient.post('/api/rates/current', {
