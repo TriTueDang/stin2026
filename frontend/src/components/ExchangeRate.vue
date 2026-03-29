@@ -35,7 +35,7 @@
           <div class="form-group">
             <label><strong>{{ t[lang].defaultBase }}:</strong></label>
             <select v-model="currentBase" class="modern-select">
-              <option v-for="c in availableCurrencies" :key="c" :value="c">{{ c }}</option>
+              <option v-for="c in baseCurrencies" :key="c" :value="c">{{ c }}</option>
             </select>
           </div>
 
@@ -227,14 +227,22 @@ const showSettings = ref(false);
 
 // Configuration Defaults
 const availableCurrencies = ['USD', 'EUR', 'CZK', 'GBP', 'CHF', 'JPY', 'PLN', 'HUF', 'AUD', 'CAD', 'CNY', 'SEK', 'NOK', 'DKK'];
+const baseCurrencies = ['USD', 'EUR', 'CZK'];
 const watchedCurrencies = ref(['EUR', 'CZK', 'USD', 'GBP']);
 const currentBase = ref('EUR');
 
 const currentData = ref(null);
 const historyData = ref(null);
 const historyStatsData = ref(null);
-const startDate = ref('2025-01-01');
-const endDate = ref('2025-01-10');
+const getFormattedDate = (date) => date.toISOString().split('T')[0];
+const today = new Date();
+const yesterday = new Date(today);
+yesterday.setDate(today.getDate() - 1);
+const oneMonthAgo = new Date(yesterday);
+oneMonthAgo.setMonth(yesterday.getMonth() - 1);
+
+const startDate = ref(getFormattedDate(oneMonthAgo));
+const endDate = ref(getFormattedDate(yesterday));
 const lastValidDate = ref(null);
 const backendErrors = ref([]);
 
@@ -672,17 +680,33 @@ button {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 24px;
+  padding: 16px 24px;
   border-bottom: 1px solid var(--border-color);
 }
-.close-btn {
-  background: transparent;
-  border: none;
-  font-size: 1.5rem;
-  color: var(--text-muted);
-  padding: 0;
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.4rem;
+  line-height: 1;
 }
-.close-btn:hover { color: var(--text-main); }
+.close-btn {
+  background: var(--bg-input);
+  border: none;
+  font-size: 1.8rem;
+  color: var(--text-muted);
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+  cursor: pointer;
+  padding-bottom: 5px; /* Fine-tuned vertical adjustment for the × character baseline */
+}
+.close-btn:hover {
+  background: var(--bg-hover);
+  color: #ef4444;
+}
 .modal-body { padding: 24px; }
 .modal-footer {
   padding: 20px 24px;
