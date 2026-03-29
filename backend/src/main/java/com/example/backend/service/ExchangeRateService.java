@@ -143,14 +143,3 @@ public class ExchangeRateService {
         storage.saveData(settings, storagePath + SETTINGS_FILE);
     }
 }
-
-    
-    
-        
-        
-        
-        
-        
-        
-        
-    
