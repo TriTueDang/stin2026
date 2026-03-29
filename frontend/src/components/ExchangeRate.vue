@@ -35,7 +35,7 @@
           <div class="form-group">
             <label><strong>{{ t[lang].defaultBase }}:</strong></label>
             <select v-model="currentBase" class="modern-select">
-              <option v-for="c in availableCurrencies" :key="c" :value="c">{{ c }}</option>
+              <option v-for="c in baseCurrencies" :key="c" :value="c">{{ c }}</option>
             </select>
           </div>
 
@@ -227,6 +227,7 @@ const showSettings = ref(false);
 
 // Configuration Defaults
 const availableCurrencies = ['USD', 'EUR', 'CZK', 'GBP', 'CHF', 'JPY', 'PLN', 'HUF', 'AUD', 'CAD', 'CNY', 'SEK', 'NOK', 'DKK'];
+const baseCurrencies = ['USD', 'EUR', 'CZK'];
 const watchedCurrencies = ref(['EUR', 'CZK', 'USD', 'GBP']);
 const currentBase = ref('EUR');
 
