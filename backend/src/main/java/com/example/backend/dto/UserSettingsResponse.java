@@ -9,7 +9,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserSettingsResponse {
-    private Currency baseCurrency;
+    private BaseCurrency baseCurrency;
     private List<Currency> watchedCurrencies;
     private Language lang;
 }

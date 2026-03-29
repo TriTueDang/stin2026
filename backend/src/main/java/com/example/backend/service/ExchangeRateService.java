@@ -1,5 +1,6 @@
 package com.example.backend.service;
 
+import com.example.backend.dto.BaseCurrency;
 import com.example.backend.dto.Currency;
 import com.example.backend.dto.CurrentRatesResponse;
 import com.example.backend.dto.CurrentRateRequest;
@@ -104,7 +105,7 @@ public class ExchangeRateService {
         return filtered;
     }
 
-    private TimeframeResponse getTimeframeData(Currency base, String start, String end) {
+    private TimeframeResponse getTimeframeData(BaseCurrency base, String start, String end) {
         TimeframeResponse response = null;
         if (useRealApi) {
             try {
@@ -131,7 +132,7 @@ public class ExchangeRateService {
         } catch (Exception e) {
             // If loading fails, return default settings
             UserSettingsResponse defaultSettings = new UserSettingsResponse();
-            defaultSettings.setBaseCurrency(Currency.EUR);
+            defaultSettings.setBaseCurrency(BaseCurrency.EUR);
             defaultSettings.setWatchedCurrencies(List.of(Currency.USD, Currency.EUR, Currency.GBP));
             defaultSettings.setLang(Language.cs);
             log.warn("Failed to get user settings, returning default settings: {}", e.getMessage());
