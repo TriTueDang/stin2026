@@ -7,4 +7,5 @@ public class CurrentRatesResponse {
     private ExchangeRateResponse exchangeRates;
     private String strongestCurrency;
     private String weakestCurrency;
+    private String warning;
 }

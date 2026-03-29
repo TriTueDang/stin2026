@@ -48,6 +48,8 @@ public class ExchangeRateService {
 
     public CurrentRatesResponse getCurrentRates(CurrentRateRequest request) {
         ExchangeRateResponse response = null;
+        String warning = null;
+        
         if (useRealApi) {
             try {
                 response = client.getRates(request.getBase().name());
@@ -56,6 +58,11 @@ public class ExchangeRateService {
                 }
             } catch (Exception e) {
                 log.error("API current rates failed: {}", e.getMessage());
+                if (e.getMessage() != null && e.getMessage().contains("429")) {
+                    warning = "Limit API překročen (429), zobrazuji poslední dostupná data z lokálního úložiště.";
+                } else {
+                    warning = "API selhalo, zobrazuji data z lokálního úložiště.";
+                }
             }
         }
 
@@ -68,18 +75,36 @@ public class ExchangeRateService {
         }
 
         log.info("Get current rates for base: {}, watched: {}, useRealApi: {}", request.getBase(), request.getWatched(), useRealApi);
-        return statisticsService.calculateCurrentAll(response, request.getWatched());
+        CurrentRatesResponse results = statisticsService.calculateCurrentAll(response, request.getWatched());
+        results.setWarning(warning);
+        return results;
     }
 
     public HistoricalDataResponse getHistoricalData(HistoricalDataRequest request) {
-        TimeframeResponse fullResponse = getTimeframeData(request.getBase(), request.getStartDate(),
-                request.getEndDate());
+        String warning = null;
+        TimeframeResponse fullResponse = null;
+        
+        try {
+            fullResponse = getTimeframeData(request.getBase(), request.getStartDate(), request.getEndDate());
+        } catch (Exception e) {
+            log.error("Historical data retrieval failed: {}", e.getMessage());
+            if (e.getMessage() != null && e.getMessage().contains("429")) {
+                warning = "Limit API překročen (429), zobrazuji poslední dostupná data z lokálního úložiště.";
+            } else {
+                warning = "API selhalo, zobrazuji data z lokálního úložiště.";
+            }
+            // Fallback is handled inside getTimeframeData as well, but we catch it here to set the warning
+            fullResponse = storage.loadData(storagePath + TIMEFRAME_FILE, TimeframeResponse.class);
+        }
+
+        if (fullResponse == null) {
+            throw new RuntimeException("Timeframe data not available from API or storage");
+        }
 
         HistoricalRatesStatistics stats = statisticsService.calculateTimeframeAll(fullResponse, request.getWatched());
-
         TimeframeResponse filteredResponse = filterTimeframeData(fullResponse, request.getWatched());
 
-        return new HistoricalDataResponse(filteredResponse, stats);
+        return new HistoricalDataResponse(filteredResponse, stats, warning);
     }
 
     private TimeframeResponse filterTimeframeData(TimeframeResponse original, List<Currency> watched) {
@@ -116,6 +141,7 @@ public class ExchangeRateService {
                 }
             } catch (Exception e) {
                 log.error("API timeframe failed: {}", e.getMessage());
+                throw e; // Throw to be caught in getHistoricalData which sets the warning
             }
         }
 
@@ -128,6 +154,7 @@ public class ExchangeRateService {
 
     public UserSettingsResponse getSettings() {
         try {
+            log.info("Loading user settings from storage");
             return storage.loadData(storagePath + SETTINGS_FILE, UserSettingsResponse.class);
         } catch (Exception e) {
             // If loading fails, return default settings
@@ -141,6 +168,12 @@ public class ExchangeRateService {
     }
 
     public void saveSettings(UserSettingsRequest settings) {
-        storage.saveData(settings, storagePath + SETTINGS_FILE);
+        try{
+            storage.saveData(settings, storagePath + SETTINGS_FILE);
+            log.info("Saving user settings: {}", settings.getBaseCurrency());
+        }catch (Exception e) {
+            log.error("Failed to save user settings: {}", e.getMessage());
+            throw new RuntimeException("Failed to save user settings");
+        }
     }
 }

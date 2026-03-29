@@ -110,6 +110,11 @@
         </div>
       </div>
 
+      <!-- Warning Banner -->
+      <div v-if="currentData.warning" class="warning-box mb-4">
+        ⚠️ {{ currentData.warning }}
+      </div>
+
       <div class="table-responsive">
         <table class="rate-table modern-table">
           <thead>
@@ -143,7 +148,19 @@
           <span class="date-separator">-</span>
           <input type="date" v-model="endDate" class="modern-input" />
         </div>
-        <button class="secondary-btn" @click="fetchTimeframe" :disabled="loading">{{ t[lang].loadHistory }}</button>
+        <button class="secondary-btn" @click="fetchTimeframe(false)" :disabled="loading || historyLoading">
+          {{ (loading || historyLoading) ? '...' : t[lang].loadHistory }}
+        </button>
+      </div>
+
+      <!-- History Warning Banner -->
+      <div v-if="historyWarning" class="warning-box mb-4">
+        <div>
+          <strong>⚠️ {{ historyWarning }}</strong>
+          <div v-if="historyData && historyData.start_date" class="mt-1 text-sm opacity-80">
+            {{ t[lang].period }}: {{ historyData.start_date }} – {{ historyData.end_date }}
+          </div>
+        </div>
       </div>
 
       <!-- Average Table from History -->
@@ -224,6 +241,7 @@ const lang = ref('cs');
 const loading = ref(false);
 const error = ref(null);
 const showSettings = ref(false);
+const historyLoading = ref(false);
 
 // Configuration Defaults
 const availableCurrencies = ['USD', 'EUR', 'CZK', 'GBP', 'CHF', 'JPY', 'PLN', 'HUF', 'AUD', 'CAD', 'CNY', 'SEK', 'NOK', 'DKK'];
@@ -234,6 +252,7 @@ const currentBase = ref('EUR');
 const currentData = ref(null);
 const historyData = ref(null);
 const historyStatsData = ref(null);
+const historyWarning = ref(null);
 const getFormattedDate = (date) => date.toISOString().split('T')[0];
 const today = new Date();
 const yesterday = new Date(today);
@@ -273,7 +292,8 @@ const t = {
     weakest: 'Nejslabší',
     averageSelected: 'Průměr vybraných měn',
     averageRate: 'Průměrný kurz',
-    logout: 'Odhlásit se'
+    logout: 'Odhlásit se',
+    period: 'Období'
   },
   en: {
     title: 'Exchange Rates Analyzer',
@@ -298,7 +318,8 @@ const t = {
     weakest: 'Weakest',
     averageSelected: 'Average of selected currencies',
     averageRate: 'Average Rate',
-    logout: 'Logout'
+    logout: 'Logout',
+    period: 'Period'
   }
 };
 
@@ -320,8 +341,9 @@ const saveSettings = async () => {
       lang: lang.value
     });
     showSettings.value = false; // Close settings only on success
-    fetchCurrentRates();
-    fetchTimeframe();
+    await fetchCurrentRates();
+    // Fetch timeframe with delay to avoid burst limits
+    fetchTimeframe(true);
   } catch(e) {
     handleApiError(e);
   }
@@ -355,6 +377,7 @@ const fetchCurrentRates = async () => {
   loading.value = true;
   error.value = null;
   backendErrors.value = [];
+  if (currentData.value) currentData.value.warning = null;
 
 
   try {
@@ -373,10 +396,16 @@ const fetchCurrentRates = async () => {
   }
 };
 
-const fetchTimeframe = async () => {
+const fetchTimeframe = async (withDelay = false) => {
+  if (withDelay) {
+    historyLoading.value = true;
+    await new Promise(r => setTimeout(r, 2000));
+  }
   loading.value = true;
+  historyLoading.value = true;
   historyData.value = null;
   historyStatsData.value = null;
+  historyWarning.value = null;
   backendErrors.value = [];
 
   try {
@@ -388,10 +417,12 @@ const fetchTimeframe = async () => {
     });
     historyData.value = response.data.history;
     historyStatsData.value = response.data.statistics;
+    historyWarning.value = response.data.warning;
   } catch (err) {
     handleApiError(err);
   } finally {
     loading.value = false;
+    historyLoading.value = false;
   }
 };
 
@@ -475,7 +506,9 @@ onMounted(async () => {
   }
 
   // Followed by fetching standard data
-  fetchCurrentRates();
+  await fetchCurrentRates();
+  // Fetch history with delay
+  fetchTimeframe(true);
 });
 </script>
 
@@ -506,6 +539,18 @@ onMounted(async () => {
 h1, h2, h3, h4, p { margin-top: 0; color: var(--text-main); }
 h3 { font-size: 1.1rem; margin-bottom: 12px; }
 h4 { margin-top: 0; margin-bottom: 16px; font-weight: 600; font-size: 1.05rem; color: var(--text-main); }
+.warning-box {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid #f59e0b;
+  color: #f59e0b;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 .mt-4 { margin-top: 24px; }
 .mb-4 { margin-bottom: 24px; }
 
