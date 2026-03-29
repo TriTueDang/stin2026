@@ -1,7 +1,17 @@
 package com.example.backend.service;
 
+import com.example.backend.dto.Currency;
+import com.example.backend.dto.CurrentRatesResponse;
+import com.example.backend.dto.CurrentRateRequest;
+import com.example.backend.dto.ExchangeRateResponse;
+import com.example.backend.dto.HistoricalDataResponse;
+import com.example.backend.dto.HistoricalDataRequest;
+import com.example.backend.dto.HistoricalRatesStatistics;
+import com.example.backend.dto.TimeframeResponse;
+import com.example.backend.dto.UserSettingsResponse;
+import com.example.backend.dto.UserSettingsRequest;
 import com.example.backend.client.ExchangeRateProvider;
-import com.example.backend.dto.*;
+import com.example.backend.dto.Language;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -35,11 +45,11 @@ public class ExchangeRateService {
         this.statisticsService = statisticsService;
     }
 
-    public CurrentRatesStatistics getCurrentRates(ExchangeRateRequest request) {
+    public CurrentRatesResponse getCurrentRates(CurrentRateRequest request) {
         ExchangeRateResponse response = null;
         if (useRealApi) {
             try {
-                response = client.getRates(request.getBase());
+                response = client.getRates(request.getBase().name());
                 if (response != null && response.isSuccess()) {
                     storage.saveData(response, storagePath + RATES_FILE);
                 }
@@ -60,7 +70,7 @@ public class ExchangeRateService {
         return statisticsService.calculateCurrentAll(response, request.getWatched());
     }
 
-    public HistoricalDataResponse getHistoricalData(HistoricalStatisticsRequest request) {
+    public HistoricalDataResponse getHistoricalData(HistoricalDataRequest request) {
         TimeframeResponse fullResponse = getTimeframeData(request.getBase(), request.getStartDate(),
                 request.getEndDate());
 
@@ -71,7 +81,7 @@ public class ExchangeRateService {
         return new HistoricalDataResponse(filteredResponse, stats);
     }
 
-    private TimeframeResponse filterTimeframeData(TimeframeResponse original, List<String> watched) {
+    private TimeframeResponse filterTimeframeData(TimeframeResponse original, List<Currency> watched) {
         if (original == null || original.getQuotes() == null)
             return original;
 
@@ -86,7 +96,7 @@ public class ExchangeRateService {
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
                         entry -> watched.stream()
-                                .map(currency -> prefix + currency)
+                                .map(currency -> prefix + currency.name())
                                 .filter(entry.getValue()::containsKey)
                                 .collect(Collectors.toMap(k -> k, k -> entry.getValue().get(k)))));
 
@@ -94,11 +104,11 @@ public class ExchangeRateService {
         return filtered;
     }
 
-    private TimeframeResponse getTimeframeData(String base, String start, String end) {
+    private TimeframeResponse getTimeframeData(Currency base, String start, String end) {
         TimeframeResponse response = null;
         if (useRealApi) {
             try {
-                response = client.getTimeframeExchangeRates(base, start, end);
+                response = client.getTimeframeExchangeRates(base.name(), start, end);
                 if (response != null && response.isSuccess()) {
                     storage.saveData(response, storagePath + TIMEFRAME_FILE);
                     return response;
