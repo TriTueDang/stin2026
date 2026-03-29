@@ -1,5 +1,6 @@
 package com.example.backend.service.calculator;
 
+import com.example.backend.dto.Currency;
 import com.example.backend.dto.HistoricalRatesStatistics;
 import com.example.backend.dto.TimeframeResponse;
 
@@ -13,5 +14,5 @@ public interface HistoricalRateCalculator {
      * @param watchedCurrencies list of currencies
      * @param results object where the calculated statistic should be stored
      */
-    void calculate(TimeframeResponse data, List<String> watchedCurrencies, HistoricalRatesStatistics results);
+    void calculate(TimeframeResponse data, List<Currency> watchedCurrencies, HistoricalRatesStatistics results);
 }

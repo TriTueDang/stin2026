@@ -1,6 +1,7 @@
 package com.example.backend.service;
 
-import com.example.backend.dto.CurrentRatesStatistics;
+import com.example.backend.dto.Currency;
+import com.example.backend.dto.CurrentRatesResponse;
 import com.example.backend.dto.ExchangeRateResponse;
 import com.example.backend.dto.HistoricalRatesStatistics;
 import com.example.backend.dto.TimeframeResponse;
@@ -26,7 +27,7 @@ public class StatisticsService {
     /**
      * Vypočítá všechny statistiky pro časové období (zde průměr).
      */
-    public HistoricalRatesStatistics calculateTimeframeAll(TimeframeResponse data, List<String> watchedCurrencies) {
+    public HistoricalRatesStatistics calculateTimeframeAll(TimeframeResponse data, List<Currency> watchedCurrencies) {
         HistoricalRatesStatistics results = new HistoricalRatesStatistics();
 
         for (HistoricalRateCalculator calculator : timeframeCalculators) {
@@ -39,8 +40,8 @@ public class StatisticsService {
     /**
      * Calculates all current statistics based on the live exchange rate data and the list of watched currencies.
      */
-    public CurrentRatesStatistics calculateCurrentAll(ExchangeRateResponse data, List<String> watchedCurrencies) {
-        CurrentRatesStatistics results = new CurrentRatesStatistics();
+    public CurrentRatesResponse calculateCurrentAll(ExchangeRateResponse data, List<Currency> watchedCurrencies) {
+        CurrentRatesResponse results = new CurrentRatesResponse();
         results.setExchangeRates(data);
 
         for (CurrentRateCalculator calculator : currentCalculators) {

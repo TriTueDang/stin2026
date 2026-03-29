@@ -1,6 +1,5 @@
 package com.example.backend.dto;
 
-import com.example.backend.validation.ValidCurrencies;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -15,8 +14,7 @@ public class UserSettingsRequest {
     private Currency baseCurrency;
 
     @NotNull(message = "Watched currencies list is required")
-    @ValidCurrencies
-    private List<String> watchedCurrencies;
+    private List<Currency> watchedCurrencies;
 
     @NotNull(message = "Language is required")
     private Language lang;
