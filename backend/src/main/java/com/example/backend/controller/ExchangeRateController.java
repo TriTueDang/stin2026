@@ -16,13 +16,13 @@ public class ExchangeRateController {
     }
 
     @PostMapping("/current")
-    public CurrentRatesStatistics getCurrentRates(@Valid @RequestBody ExchangeRateRequest request) {
+    public CurrentRatesResponse getCurrentRates(@Valid @RequestBody CurrentRateRequest request) {
         // return rates and max, min for watched currencies
         return service.getCurrentRates(request);
     }
 
     @PostMapping("/history")
-    public HistoricalDataResponse getHistoricalData(@Valid @RequestBody HistoricalStatisticsRequest request) {
+    public HistoricalDataResponse getHistoricalData(@Valid @RequestBody HistoricalDataRequest request) {
         return service.getHistoricalData(request);
     }
 

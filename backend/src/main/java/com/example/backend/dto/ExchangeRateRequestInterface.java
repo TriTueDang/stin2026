@@ -1,14 +1,15 @@
 package com.example.backend.dto;
 
 import lombok.Data;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
 @Data
 public abstract class ExchangeRateRequestInterface {
-    @NotBlank(message = "Base currency is required")
-    @Pattern(regexp = "USD|EUR|CZK|GBP|CHF|JPY|PLN|HUF|AUD|CAD|CNY|SEK|NOK|DKK", message = "Unsupported base currency")
-    private String base;
+    @NotNull(message = "Base currency is required")
+    private Currency base;
+
+    @NotEmpty(message = "Watched currencies list cannot be empty")
+    private List<Currency> watched;
 }
