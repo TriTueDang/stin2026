@@ -1,7 +1,7 @@
 # 🌍 Měnový Analyzátor (Exchange Rates Analyzer)
 
 [![Build and Deploy](https://github.com/TriTueDang/stin2026/actions/workflows/deploy.yml/badge.svg)](https://github.com/TriTueDang/stin2026/actions/workflows/deploy.yml)
-[![Azure Deployed](https://img.shields.io/badge/Deployed%20to-Azure-0078D4?logo=microsoft-azure&logoColor=white)](https://currency-app-bvh4duf3cvbqbmew.germanywestcentral-01.azurewebsites.net/)
+[![Azure Deployed](https://img.shields.io/badge/Deployed%20to-Azure-0078D4?logo=microsoft-azure&logoColor=white)](https://azure.microsoft.com/cs-cz)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.0.3-6DB33F?logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
 [![Vue.js](https://img.shields.io/badge/Vue.js-3.5-4FC08D?logo=vuedotjs&logoColor=white)](https://vuejs.org/)
 
