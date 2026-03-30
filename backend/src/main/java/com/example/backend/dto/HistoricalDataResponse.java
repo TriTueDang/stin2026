@@ -10,4 +10,5 @@ import lombok.NoArgsConstructor;
 public class HistoricalDataResponse {
     private TimeframeResponse history;
     private HistoricalRatesStatistics statistics;
+    private String warning;
 }

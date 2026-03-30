@@ -8,7 +8,7 @@ import java.util.List;
 @Data
 public abstract class ExchangeRateRequestInterface {
     @NotNull(message = "Base currency is required")
-    private Currency base;
+    private BaseCurrency base;
 
     @NotEmpty(message = "Watched currencies list cannot be empty")
     private List<Currency> watched;

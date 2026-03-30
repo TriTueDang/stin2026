@@ -11,7 +11,7 @@ import java.util.List;
 @AllArgsConstructor
 public class UserSettingsRequest {
     @NotNull(message = "Base currency is required")
-    private Currency baseCurrency;
+    private BaseCurrency baseCurrency;
 
     @NotNull(message = "Watched currencies list is required")
     private List<Currency> watchedCurrencies;
