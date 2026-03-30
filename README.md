@@ -73,10 +73,13 @@ Projekt je testovaný a snaží se dodržovat zásady čistého kódu.
 
 ### Lokální vývoj (Backend)
 1. Přejděte do složky `backend`.
-2. Ujistěte se, že máte nainstalovanou Javu 17+ a Maven.
-3. Spusťte pomocí:
-   ```bash
-   mvn spring-boot:run
+2. Ujistěte se, že máte nainstalovanou Javu 17+.
+3. Nastavte proměnné prostředí pro API (v `.env`):
+   - `EXCHANGE_API_URL`: URL adresa API, např. https://exchangerate.host/
+   - `EXCHANGE_API_KEY`: Váš privátní API klíč, např. 1234567890
+4. Spusťte pomocí Maven wrapperu:
+   ```powershell
+   .\mvnw spring-boot:run
    ```
 
 ### Lokální vývoj (Frontend)
