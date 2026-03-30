@@ -7,6 +7,8 @@
 
 Moderní webová aplikace pro sledování a analýzu směnných kurzů v reálném čase i historii. Aplikace je plně nasazena v cloudu **Microsoft Azure**.
 
+Link na aplikaci: https://currency-app-bvh4duf3cvbqbmew.germanywestcentral-01.azurewebsites.net/
+
 ---
 
 ## ✨ Klíčové Vlastnosti
