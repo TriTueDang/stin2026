@@ -43,7 +43,7 @@ jobs:
           cache: 'maven'
 
       - name: Build backend
-        run: mvn clean package
+        run: mvn clean verify
         working-directory: ./backend
 
       - name: Generate Jacoco Badges
