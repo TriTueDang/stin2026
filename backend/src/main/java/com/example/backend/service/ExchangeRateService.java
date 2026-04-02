@@ -50,8 +50,6 @@ public class ExchangeRateService {
     }
 
     public CurrentRatesResponse getCurrentRates(CurrentRateRequest request) {
-        log.info("Fetching current rates for base: {}, watched: {}, useRealApi: {}", request.getBase(),
-                request.getWatched(), useRealApi);
 
         FetchResult<ExchangeRateResponse> result = fetchWithFallback(
                 () -> client.getRates(request.getBase().name()),
@@ -65,8 +63,6 @@ public class ExchangeRateService {
     }
 
     public HistoricalDataResponse getHistoricalData(HistoricalDataRequest request) {
-        log.info("Fetching historical rates for base: {}, from: {} to: {}", request.getBase(), request.getStartDate(),
-                request.getEndDate());
 
         FetchResult<TimeframeResponse> result = fetchWithFallback(
                 () -> client.getTimeframeExchangeRates(request.getBase().name(), request.getStartDate(),
@@ -82,13 +78,11 @@ public class ExchangeRateService {
     }
 
     public UserSettingsResponse getSettings() {
-        log.info("Loading user settings from storage");
         return Optional.ofNullable(safeLoadSettings())
                 .orElseGet(this::getDefaultSettings);
     }
 
     public void saveSettings(UserSettingsRequest settings) {
-        log.info("Saving user settings: {}", settings.getBaseCurrency());
         executeAndIgnore(() -> storage.saveData(settings, getPath(SETTINGS_FILE)), "save settings");
     }
 
